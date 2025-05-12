@@ -8,6 +8,10 @@
 "files.associations": {
     "vector": "c",
     "xstring": "c",
-    "xutility": "c"
+    "xutility": "c",
+    "genesis.h": "c",
+    "resources.h": "c",
+    "iosfwd": "c",
+    "xlocbuf": "c"
 }
 }
