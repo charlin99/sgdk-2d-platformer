@@ -6,7 +6,8 @@
 extern Sprite *player;
 
 void PLAYER_init();
-void PLAYER_handle_input(); // Renomeado para mais clareza
-void PLAYER_update();       // Uma nova função para a lógica de atualização
+void PLAYER_handle_input();
+void PLAYER_update();
+void JOY_handler(u16 joy, u16 changed, u16 state);
 
-#endif // _PLAYER_H_
+#endif

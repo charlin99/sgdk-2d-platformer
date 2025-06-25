@@ -12,6 +12,8 @@ int main()
     SPR_init();
     PLAYER_init();
 
+    JOY_setEventHandler(JOY_handler);
+
     while (1)
     {
         PLAYER_handle_input();
