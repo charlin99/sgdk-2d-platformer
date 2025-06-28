@@ -8,6 +8,10 @@
 #define PLAYER_JUMP_FORCE   FIX16(-3.0)
 #define GRAVITY             FIX16(0.2)
 #define MAX_FALL_SPEED      FIX16(6.0)
+#define ANIM_IDLE   0
+#define ANIM_WALK   1
+#define ANIM_JUMP   2
+#define ANIM_FALL   3
 
 // --- Variáveis Globais ---
 Sprite *player;
@@ -15,6 +19,7 @@ u16 player_x = 30;
 u16 player_y = 32;
 fix16 player_vy = FIX16(0);
 bool player_on_ground = FALSE;
+u16 player_current_anim = -1;
 
 // --- Funções Auxiliares ---
 bool is_tile_solid(u16 tile_index)
@@ -126,6 +131,46 @@ void PLAYER_try_jump()
     {
         player_vy = PLAYER_JUMP_FORCE;
         player_on_ground = FALSE;
+    }
+}
+
+void PLAYER_update_anim()
+{
+    // Decide qual animação deveria estar tocando
+    u16 new_anim = player_current_anim;
+
+    if (player_on_ground)
+    {
+        // Se está no chão, verifica se o jogador está pressionando para os lados
+        u16 value = JOY_readJoypad(JOY_1);
+        if ((value & BUTTON_LEFT) || (value & BUTTON_RIGHT))
+        {
+            new_anim = ANIM_WALK; // Animação de andar
+        }
+        else
+        {
+            new_anim = ANIM_IDLE; // Animação de parado
+        }
+    }
+    else // Jogador no ar
+    {
+        if(player_vy < 0)
+        {
+            // Se está subindo
+            new_anim = ANIM_JUMP; 
+        }
+        else if(player_vy > 60)
+        {
+            // Se está caindo
+            new_anim = ANIM_FALL; 
+        }
+    }
+
+    // Se a animação que deveria tocar é diferente da que está tocando atualiza para a que deveria ser
+    if (new_anim != player_current_anim)
+    {
+        player_current_anim = new_anim;
+        SPR_setAnim(player, player_current_anim);
     }
 }
 

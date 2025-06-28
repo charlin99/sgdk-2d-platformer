@@ -25,6 +25,7 @@ int main()
     {
         PLAYER_handle_input();
         PLAYER_update();
+        PLAYER_update_anim();
 
         SPR_update();
         SYS_doVBlankProcess();
