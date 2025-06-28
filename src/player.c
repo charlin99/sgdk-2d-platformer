@@ -1,22 +1,50 @@
 #include "player.h"
 #include <resources.h>
 
-#define PLAYER_WIDTH 16
-#define PLAYER_HEIGHT 16
-#define PLAYER_JUMP_FORCE -7
-#define GRAVITY 1
+// --- Constantes ---
+#define PLAYER_WIDTH        16
+#define PLAYER_HEIGHT       16
+#define PLAYER_JUMP_FORCE   FIX16(-3.0)
+#define GRAVITY             FIX16(0.2)
+#define MAX_FALL_SPEED      FIX16(6.0)
+#define PLAYER_SPEED        1
 
+// --- Variáveis globais ---
 Sprite *player;
 u16 player_x = 30;
 u16 player_y = 32;
-s16 player_vy = 0;
+fix16 player_vy = FIX16(0);
 bool player_on_ground = FALSE;
 
+// --- Funções auxiliares ---
 bool is_tile_solid(u16 tile_index)
 {
     return (tile_index >= 1);
 }
 
+bool is_path_clear_H(u16 x_coord)
+{
+    u16 body_y_top = player_y + 2;
+    u16 body_y_bottom = player_y + (PLAYER_HEIGHT - 2);
+
+    u16 upper_tile = MAP_getTile(bga, x_coord / 8, body_y_top / 8) & TILE_INDEX_MASK;
+    u16 lower_tile = MAP_getTile(bga, x_coord / 8, body_y_bottom / 8) & TILE_INDEX_MASK;
+
+    return !is_tile_solid(upper_tile) && !is_tile_solid(lower_tile);
+}
+
+bool check_vertical_collision(u16 y_coord)
+{
+    u16 check_x_left = player_x + 2;
+    u16 check_x_right = player_x + (PLAYER_WIDTH - 2);
+
+    u16 tile_left  = MAP_getTile(bga, check_x_left / 8, y_coord / 8) & TILE_INDEX_MASK;
+    u16 tile_right = MAP_getTile(bga, check_x_right / 8, y_coord / 8) & TILE_INDEX_MASK;
+
+    return is_tile_solid(tile_left) || is_tile_solid(tile_right);
+}
+
+// --- Funções do jogador ---
 void PLAYER_init()
 {
     player = SPR_addSprite(&player_sprite, player_x, player_y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
@@ -26,30 +54,19 @@ void PLAYER_handle_input()
 {
     u16 value = JOY_readJoypad(JOY_1);
 
-    u16 body_y_top = player_y + 2;
-    u16 body_y_bottom = player_y + (PLAYER_HEIGHT - 2);
-
     if (value & BUTTON_LEFT)
     {
-        u16 left_x = player_x - 1;
-        u16 upper_tile = MAP_getTile(bga, left_x / 8, body_y_top / 8) & TILE_INDEX_MASK;
-        u16 lower_tile = MAP_getTile(bga, left_x / 8, body_y_bottom / 8) & TILE_INDEX_MASK;
-
-        if (!is_tile_solid(upper_tile) && !is_tile_solid(lower_tile))
+        if (is_path_clear_H(player_x - PLAYER_SPEED))
         {
-            player_x -= 1;
+            player_x -= PLAYER_SPEED;
         }
         SPR_setHFlip(player, TRUE);
     }
     else if (value & BUTTON_RIGHT)
     {
-        u16 right_x = player_x + PLAYER_WIDTH;
-        u16 upper_tile = MAP_getTile(bga, right_x / 8, body_y_top / 8) & TILE_INDEX_MASK;
-        u16 lower_tile = MAP_getTile(bga, right_x / 8, body_y_bottom / 8) & TILE_INDEX_MASK;
-
-        if (!is_tile_solid(upper_tile) && !is_tile_solid(lower_tile))
+        if (is_path_clear_H(player_x + PLAYER_WIDTH))
         {
-            player_x += 1;
+            player_x += PLAYER_SPEED;
         }
         SPR_setHFlip(player, FALSE);
     }
@@ -60,56 +77,58 @@ void PLAYER_update()
     // --- PASSO 1: APLICAR GRAVIDADE ---
     player_vy += GRAVITY;
 
-    // --- PASSO 2: LIDAR COM O MOVIMENTO E COLISÃO EIXO Y ---
-    player_on_ground = FALSE;
-
-    if (player_vy > 0) // Caindo
+    if (player_vy > MAX_FALL_SPEED)
     {
-        // Loop que move 1 pixel de cada vez, até o máximo da velocidade vertical
-        for (int i = 0; i < player_vy; i++)
+        player_vy = MAX_FALL_SPEED;
+    }
+
+    // --- PASSO 2: MOVIMENTAÇÃO E COLISÃO VERTICAL ---
+    s16 move_y = F16_toInt(player_vy);
+
+    if (move_y > 0) // Caindo
+    {
+        for (int i = 0; i < move_y; i++)
         {
-            player_y++; // Move 1 pixel para baixo
-
-            // Verifica a colisão com o chão APÓS mover 1 pixel
-            u16 check_x_left = player_x + 2;
-            u16 check_x_right = player_x + (PLAYER_WIDTH - 2);
-            u16 feet_y = player_y + PLAYER_HEIGHT;
-            u16 tile_left  = MAP_getTile(bga, check_x_left / 8, feet_y / 8) & TILE_INDEX_MASK;
-            u16 tile_right = MAP_getTile(bga, check_x_right / 8, feet_y / 8) & TILE_INDEX_MASK;
-
-            if (is_tile_solid(tile_left) || is_tile_solid(tile_right))
+            player_y++;
+            u16 feet_y = player_y + PLAYER_HEIGHT - 1; // Checa o último pixel do sprite
+            
+            if (check_vertical_collision(feet_y))
             {
-                player_y--; // Volta 1 pixel para a posição de contato
-                player_vy = 0;
-                player_on_ground = TRUE;
-                break; // Sai do loop de movimento, pois já colidiu
+                player_y--;
+                player_vy = FIX16(0);
+                break; 
             }
         }
     }
-    else if (player_vy < 0) // Subindo
+    else if (move_y < 0) // Subindo
     {
-        // Loop para movimento para cima, -1 pixel de cada vez
-        for (int i = 0; i > player_vy; i--)
+        for (int i = 0; i > move_y; i--)
         {
-            player_y--; // Move 1 pixel para cima
-
-            // Verifica a colisão com o teto
-            u16 check_x_left = player_x + 2;
-            u16 check_x_right = player_x + (PLAYER_WIDTH - 2);
+            player_y--;
             u16 head_y = player_y;
-            u16 tile_left  = MAP_getTile(bga, check_x_left / 8, head_y / 8) & TILE_INDEX_MASK;
-            u16 tile_right = MAP_getTile(bga, check_x_right / 8, head_y / 8) & TILE_INDEX_MASK;
-        
-            if (is_tile_solid(tile_left) || is_tile_solid(tile_right))
+
+            if (check_vertical_collision(head_y))
             {
-                player_y++; // Volta 1 pixel para a posição de contato
-                player_vy = 0;
-                break; // Sai do loop
+                player_y++;
+                player_vy = FIX16(0);
+                break;
             }
         }
     }
+    
+    // --- PASSO 3: VERIFICAÇÃO DE ESTADO ON_GROUND ---
+    u16 feet_y_check = player_y + PLAYER_HEIGHT; // O tile logo abaixo dos pés
+    
+    if ((player_vy >= 0) && check_vertical_collision(feet_y_check))
+    {
+        player_on_ground = TRUE;
+    }
+    else
+    {
+        player_on_ground = FALSE;
+    }
 
-    // --- PASSO 3: ATUALIZAR O SPRITE NA TELA ---
+    // --- PASSO 4: ATUALIZAR O SPRITE NA TELA ---
     SPR_setPosition(player, player_x, player_y);
 }
 
