@@ -1,2 +1,4 @@
 out/
 src/boot/
+.vscode/
+res/*.aseprite
