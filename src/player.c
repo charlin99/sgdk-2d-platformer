@@ -13,6 +13,10 @@
 #define ANIM_JUMP   2
 #define ANIM_FALL   3
 
+// --- Constantes de Som ---
+#define SFX_JUMP_ID     64
+#define SFX_WALK_ID     65
+
 // --- Variáveis Globais ---
 Sprite *player;
 u16 player_x = 30;
@@ -20,6 +24,7 @@ u16 player_y = 32;
 fix16 player_vy = FIX16(0);
 bool player_on_ground = FALSE;
 u16 player_current_anim = -1;
+u8 walk_sfx_timer = 0;
 
 // --- Funções Auxiliares ---
 bool is_tile_solid(u16 tile_index)
@@ -129,6 +134,7 @@ void PLAYER_try_jump()
 {
     if (player_on_ground)
     {
+        XGM_startPlayPCM(SFX_JUMP_ID, 15, SOUND_PCM_CH2);
         player_vy = PLAYER_JUMP_FORCE;
         player_on_ground = FALSE;
     }
@@ -139,6 +145,11 @@ void PLAYER_update_anim()
     // Decide qual animação deveria estar tocando
     u16 new_anim = player_current_anim;
 
+    if (walk_sfx_timer > 0)
+    {
+        walk_sfx_timer--;
+    }
+
     if (player_on_ground)
     {
         // Se está no chão, verifica se o jogador está pressionando para os lados
@@ -146,10 +157,17 @@ void PLAYER_update_anim()
         if ((value & BUTTON_LEFT) || (value & BUTTON_RIGHT))
         {
             new_anim = ANIM_WALK; // Animação de andar
+            if ((XGM_isPlayingPCM(SOUND_PCM_CH3) == 0)  && (walk_sfx_timer == 0))
+            {
+                XGM_startPlayPCM(SFX_WALK_ID, 10, SOUND_PCM_CH3);
+                
+            walk_sfx_timer = 30;
+            }
         }
         else
         {
             new_anim = ANIM_IDLE; // Animação de parado
+            XGM_stopPlayPCM(SOUND_PCM_CH3);
         }
     }
     else // Jogador no ar

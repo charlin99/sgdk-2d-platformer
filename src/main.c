@@ -2,6 +2,9 @@
 #include <resources.h>
 #include "player.h"
 
+#define SFX_JUMP_ID     64
+#define SFX_WALK_ID     65
+
 Map *bga;
 
 int main()
@@ -13,6 +16,11 @@ int main()
     // --- Configuração do Mapa e Sprites ---
     bga = MAP_create(&level_map, BG_A, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX));
     MAP_scrollTo(bga, 0, 0);
+
+    Z80_loadDriver(Z80_DRIVER_XGM, TRUE);
+
+    XGM_setPCM(SFX_JUMP_ID, sfx_jump, sizeof(sfx_jump));
+    XGM_setPCM(SFX_WALK_ID, sfx_walk, sizeof(sfx_walk));
 
     SPR_init();
     PLAYER_init();
