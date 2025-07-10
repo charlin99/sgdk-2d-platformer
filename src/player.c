@@ -1,3 +1,4 @@
+#include "resources_def.h"
 #include "player.h"
 #include <resources.h>
 
@@ -8,10 +9,6 @@
 #define PLAYER_JUMP_FORCE   FIX16(-3.0)
 #define GRAVITY             FIX16(0.2)
 #define MAX_FALL_SPEED      FIX16(6.0)
-#define ANIM_IDLE   0
-#define ANIM_WALK   1
-#define ANIM_JUMP   2
-#define ANIM_FALL   3
 
 // --- Constantes de Som ---
 #define SFX_JUMP_ID     64
@@ -85,7 +82,7 @@ void PLAYER_update()
     // Variáveis de checagem calculadas apenas uma vez
     u16 check_x_left = player_x + 2;
     u16 check_x_right = player_x + PLAYER_WIDTH - 2;
-    
+
     if (move_y > 0) // Caindo
     {
         for (int i = 0; i < move_y; i++)
@@ -96,7 +93,7 @@ void PLAYER_update()
             {
                 player_y--;
                 player_vy = FIX16(0);
-                break; 
+                break;
             }
         }
     }
@@ -114,7 +111,7 @@ void PLAYER_update()
             }
         }
     }
-    
+
     // --- PASSO 3: VERIFICAÇÃO DE ESTADO ON_GROUND ---
     u16 feet_y_check = player_y + PLAYER_HEIGHT;
     if ((player_vy >= 0) && (is_solid_at(check_x_left, feet_y_check) || is_solid_at(check_x_right, feet_y_check)))
@@ -161,7 +158,7 @@ void PLAYER_update_anim()
             {
                 XGM_startPlayPCM(SFX_WALK_ID, 10, SOUND_PCM_CH3);
                 
-            walk_sfx_timer = 30;
+                walk_sfx_timer = 30;
             }
         }
         else
@@ -172,15 +169,15 @@ void PLAYER_update_anim()
     }
     else // Jogador no ar
     {
-        if(player_vy < 0)
+        if (player_vy < 0)
         {
             // Se está subindo
-            new_anim = ANIM_JUMP; 
+            new_anim = ANIM_JUMP;
         }
-        else if(player_vy > 60)
+        else if (player_vy > 60)
         {
             // Se está caindo
-            new_anim = ANIM_FALL; 
+            new_anim = ANIM_FALL;
         }
     }
 
@@ -192,13 +189,31 @@ void PLAYER_update_anim()
     }
 }
 
-void JOY_handler(u16 joy, u16 changed, u16 state)
+void PLAYER_handle_joy(u16 changed, u16 state)
 {
-    if (joy == JOY_1)
+    // Se o botão A foi pressionado...
+    if (changed & state & BUTTON_A)
     {
-        if ((changed & state) & BUTTON_A)
+        // ...e Baixo está segurado...
+        if (state & BUTTON_DOWN)
         {
-            PLAYER_try_jump(); 
+            // ...lógica de descer da plataforma...
+            if (player_on_ground)
+            {
+                u16 check_x = player_x + (PLAYER_WIDTH / 2);
+                u16 feet_y = player_y + PLAYER_HEIGHT;
+                u16 tile_below = MAP_getTile(bga, check_x / 8, feet_y / 8) & TILE_INDEX_MASK;
+                if (tile_below == TILE_INDEX_PLATFORM)
+                {
+                    player_y += 2;
+                    player_on_ground = FALSE;
+                }
+            }
+        }
+        // ...senão, é um pulo normal.
+        else
+        {
+            PLAYER_try_jump();
         }
     }
 }

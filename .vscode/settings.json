@@ -12,6 +12,7 @@
     "genesis.h": "c",
     "resources.h": "c",
     "iosfwd": "c",
-    "xlocbuf": "c"
+    "xlocbuf": "c",
+    "player.h": "c"
 }
 }
