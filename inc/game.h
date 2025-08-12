@@ -3,8 +3,13 @@
 
 #include <genesis.h>
 
-void GAME_init();
-void GAME_loop();
-void GAME_handleJoy(u16 joy, u16 changed, u16 state);
+typedef enum
+{
+    STATE_TITLE,
+    STATE_PLAYING,
+    STATE_GAMEOVER
+} GameState;
+
+void GAME_start();
 
 #endif // _GAME_H_
