@@ -6,6 +6,7 @@
 #define PLAYER_WIDTH        16
 #define PLAYER_HEIGHT       16
 #define PLAYER_H_SPEED      1           // Velocidade horizontal em pixels por frame
+#define PLAYER_RUN_SPEED    2
 #define PLAYER_JUMP_FORCE   FIX16(-3.0)
 #define GRAVITY             FIX16(0.2)
 #define MAX_FALL_SPEED      FIX16(6.0)
@@ -45,26 +46,28 @@ void PLAYER_handle_input()
 {
     u16 value = JOY_readJoypad(JOY_1);
 
+    u16 h_speed = (value & BUTTON_A) ? PLAYER_RUN_SPEED : PLAYER_H_SPEED;
+
     u16 check_y_top = player_y + 2;
     u16 check_y_bottom = player_y + PLAYER_HEIGHT - 2;
 
     if (value & BUTTON_LEFT)
     {
         // Checa a próxima posição X ANTES de mover
-        u16 next_x = player_x - PLAYER_H_SPEED;
+        u16 next_x = player_x - h_speed;
         if (!is_solid_at(next_x, check_y_top) && !is_solid_at(next_x, check_y_bottom))
         {
-            player_x -= PLAYER_H_SPEED;
+            player_x -= h_speed;
         }
         SPR_setHFlip(player, TRUE);
     }
     else if (value & BUTTON_RIGHT)
     {
         // Checa a próxima posição da borda direita do sprite
-        u16 next_x = player_x + PLAYER_WIDTH - 1 + PLAYER_H_SPEED;
+        u16 next_x = player_x + PLAYER_WIDTH - 1 + h_speed;
         if (!is_solid_at(next_x, check_y_top) && !is_solid_at(next_x, check_y_bottom))
         {
-            player_x += PLAYER_H_SPEED;
+            player_x += h_speed;
         }
         SPR_setHFlip(player, FALSE);
     }
@@ -191,8 +194,8 @@ void PLAYER_update_anim()
 
 void PLAYER_handle_joy(u16 changed, u16 state)
 {
-    // Se o botão A foi pressionado...
-    if (changed & state & BUTTON_A)
+    // Se o botão B foi pressionado...
+    if (changed & state & BUTTON_B)
     {
         // ...e Baixo está segurado...
         if (state & BUTTON_DOWN)
