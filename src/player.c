@@ -21,6 +21,7 @@ u16 player_x = 30;
 u16 player_y = 32;
 fix16 player_vy = FIX16(0);
 bool player_on_ground = FALSE;
+u8 player_jumps = 0;
 u16 player_current_anim = -1;
 u8 walk_sfx_timer = 0;
 
@@ -119,11 +120,19 @@ void PLAYER_update()
     u16 feet_y_check = player_y + PLAYER_HEIGHT;
     if ((player_vy >= 0) && (is_solid_at(check_x_left, feet_y_check) || is_solid_at(check_x_right, feet_y_check)))
     {
-        player_on_ground = TRUE;
+        if (!player_on_ground)
+        {
+            player_on_ground = TRUE;
+            player_jumps = 0;
+        }
     }
     else
     {
         player_on_ground = FALSE;
+        if (player_jumps == 0)
+        {
+            player_jumps = 1;
+        }
     }
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA ---
@@ -132,11 +141,12 @@ void PLAYER_update()
 
 void PLAYER_try_jump()
 {
-    if (player_on_ground)
+    if (player_jumps < 2)
     {
         XGM_startPlayPCM(SFX_JUMP_ID, 15, SOUND_PCM_CH2);
         player_vy = PLAYER_JUMP_FORCE;
         player_on_ground = FALSE;
+        player_jumps++;
     }
 }
 
