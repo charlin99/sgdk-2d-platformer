@@ -1,5 +1,6 @@
 #include "game.h"
 #include "player.h"
+#include "enemy.h"
 #include "resources.h"
 #include "resources_def.h"
 
@@ -52,6 +53,9 @@ static void gameplay_init()
 
     PLAYER_init();
 
+    ENEMY_init();
+    ENEMY_add(120, 184);
+
     JOY_setEventHandler(gameplay_handle_joy);
 }
 
@@ -60,6 +64,8 @@ void gameplay_update()
     PLAYER_handle_input();
     PLAYER_update();
     PLAYER_update_anim();
+
+    ENEMY_update_all();
 }
 
 void gameplay_handle_joy(u16 joy, u16 changed, u16 state)

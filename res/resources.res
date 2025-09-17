@@ -3,6 +3,7 @@ TILESET level_tileset "tileset.png" BEST ALL
 MAP level_map "level_test.tmx" LevelDesign BEST
 
 SPRITE player_sprite "player_sprite.png" 2 2 FAST [[150,10,15,10][10,10,10,10,10,10][0][0]]
+SPRITE slime "slime.png" 2 2 FAST 15
 
 IMAGE title_screen "titlescreen.png" BEST
 
