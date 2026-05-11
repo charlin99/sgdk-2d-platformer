@@ -3,7 +3,7 @@
 
 #define MAX_ENEMIES     8
 #define ENEMY_SPEED     1
-#define ENEMY_MOVE_DELAY 2
+#define ENEMY_MOVE_DELAY 3
 
 // Uma estrutura para guardar os dados de cada inimigo
 typedef struct

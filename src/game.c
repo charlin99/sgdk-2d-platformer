@@ -4,14 +4,21 @@
 #include "resources.h"
 #include "resources_def.h"
 
+#define SCREEN_WIDTH 320
+#define MARGIN 10
+
 static GameState currentState;
 Map *bga;
+
+u16 camera_x = 0; 
+extern u16 player_x;
 
 static void title_init();
 static void title_update();
 static void gameplay_init();
 static void gameplay_update();
 static void gameplay_handle_joy(u16 joy, u16 changed, u16 state);
+static void check_room_transition();
 
 static void goToGameplay()
 {
@@ -65,6 +72,8 @@ void gameplay_update()
     PLAYER_update();
     PLAYER_update_anim();
 
+    check_room_transition();
+
     ENEMY_update_all();
 }
 
@@ -107,4 +116,29 @@ void GAME_start()
     SYS_doVBlankProcess();
     }
 
+}
+
+static void check_room_transition()
+{
+    // Verifica se o pé ou centro do player passou o limite da câmera atual
+    if (player_x >= camera_x + SCREEN_WIDTH)
+    {
+        if (camera_x < 960) // Para mapa de 1280px (4 telas)
+        {
+            camera_x += SCREEN_WIDTH;
+            // Posiciona o player no início da nova tela (pixel 0 da nova sala)
+            player_x = camera_x + 4; 
+            MAP_scrollTo(bga, camera_x, 0);
+        }
+    }
+    else if (player_x < camera_x)
+    {
+        if (camera_x >= SCREEN_WIDTH)
+        {
+            camera_x -= SCREEN_WIDTH;
+            // Posiciona o player no final da tela anterior
+            player_x = camera_x + SCREEN_WIDTH - 20; 
+            MAP_scrollTo(bga, camera_x, 0);
+        }
+    }
 }

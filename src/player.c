@@ -25,6 +25,8 @@ u8 player_jumps = 0;
 u16 player_current_anim = -1;
 u8 walk_sfx_timer = 0;
 
+extern u16 camera_x;
+
 // --- Funções Auxiliares ---
 bool is_tile_solid(u16 tile_index)
 {
@@ -136,7 +138,7 @@ void PLAYER_update()
     }
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA ---
-    SPR_setPosition(player, player_x, player_y);
+    SPR_setPosition(player, player_x - camera_x, player_y);
 }
 
 void PLAYER_try_jump()
