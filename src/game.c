@@ -10,8 +10,10 @@
 static GameState currentState;
 Map *bga;
 
-u16 camera_x = 0; 
+u16 camera_x = 0;
+
 extern u16 player_x;
+extern u16 player_y;
 
 static void title_init();
 static void title_update();
@@ -60,8 +62,8 @@ static void gameplay_init()
 
     PLAYER_init();
 
-    ENEMY_init();
-    ENEMY_add(120, 184);
+    //ENEMY_init();
+    //ENEMY_add(120, 184);
 
     JOY_setEventHandler(gameplay_handle_joy);
 }
@@ -120,25 +122,49 @@ void GAME_start()
 
 static void check_room_transition()
 {
-    // Verifica se o pé ou centro do player passou o limite da câmera atual
+    u16 target_x = camera_x;
+    bool transitioning = FALSE;
+
     if (player_x >= camera_x + SCREEN_WIDTH)
     {
-        if (camera_x < 960) // Para mapa de 1280px (4 telas)
+        if (camera_x < 960)
         {
-            camera_x += SCREEN_WIDTH;
-            // Posiciona o player no início da nova tela (pixel 0 da nova sala)
-            player_x = camera_x + 4; 
-            MAP_scrollTo(bga, camera_x, 0);
+            target_x = camera_x + SCREEN_WIDTH;
+            transitioning = TRUE;
         }
     }
     else if (player_x < camera_x)
     {
         if (camera_x >= SCREEN_WIDTH)
         {
-            camera_x -= SCREEN_WIDTH;
-            // Posiciona o player no final da tela anterior
-            player_x = camera_x + SCREEN_WIDTH - 20; 
-            MAP_scrollTo(bga, camera_x, 0);
+            target_x = camera_x - SCREEN_WIDTH;
+            transitioning = TRUE;
         }
+    }
+
+    if (transitioning)
+    {
+        if (camera_x < target_x) 
+            player_x = target_x;
+        else 
+            player_x = target_x + SCREEN_WIDTH - 16;
+
+        while (camera_x != target_x)
+        {
+            if (camera_x < target_x) {
+                camera_x += 10;
+            } else {
+                camera_x -= 10;
+            }
+
+            MAP_scrollTo(bga, camera_x, 0);
+            SPR_setPosition(player, player_x - camera_x, player_y);
+
+            SPR_update();
+            SYS_doVBlankProcess();
+        }
+
+        if (player_x >= target_x + SCREEN_WIDTH) player_x = target_x + SCREEN_WIDTH - 16;
+        if (player_x < target_x) player_x = target_x;
     }
 }

@@ -4,6 +4,7 @@
 #include <genesis.h>
 
 extern Map *bga;
+extern Sprite* player;
 
 void PLAYER_init();
 void PLAYER_handle_input();
