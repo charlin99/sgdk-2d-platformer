@@ -15,6 +15,8 @@ u16 camera_x = 0;
 extern u16 player_x;
 extern u16 player_y;
 
+extern Enemy enemies[MAX_ENEMIES];
+
 static void title_init();
 static void title_update();
 static void gameplay_init();
@@ -62,8 +64,8 @@ static void gameplay_init()
 
     PLAYER_init();
 
-    //ENEMY_init();
-    //ENEMY_add(120, 184);
+    ENEMY_init();
+    ENEMY_add(120, 184);
 
     JOY_setEventHandler(gameplay_handle_joy);
 }
@@ -159,6 +161,12 @@ static void check_room_transition()
 
             MAP_scrollTo(bga, camera_x, 0);
             SPR_setPosition(player, player_x - camera_x, player_y);
+
+            for(int i = 0; i < MAX_ENEMIES; i++) {
+                if (enemies[i].active) {
+                    SPR_setPosition(enemies[i].sprite, enemies[i].x - camera_x, enemies[i].y);
+                }
+            }
 
             SPR_update();
             SYS_doVBlankProcess();

@@ -3,6 +3,9 @@
 
 #include <genesis.h>
 
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 224
+
 typedef enum
 {
     STATE_TITLE,
