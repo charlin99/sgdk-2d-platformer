@@ -12,6 +12,6 @@
 #define SFX_WALK_ID     65
 
 // Constantes de tile
-#define TILE_INDEX_PLATFORM 3
+#define TILE_INDEX_PLATFORM 2
 
 #endif // _RESOURCES_DEF_H_

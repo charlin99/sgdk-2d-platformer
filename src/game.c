@@ -4,7 +4,6 @@
 #include "resources.h"
 #include "resources_def.h"
 
-#define SCREEN_WIDTH 320
 #define MARGIN 10
 
 static GameState currentState;
@@ -14,6 +13,7 @@ u16 camera_x = 0;
 
 extern u16 player_x;
 extern u16 player_y;
+extern bool player_on_ground;
 
 extern Enemy enemies[MAX_ENEMIES];
 
@@ -23,6 +23,8 @@ static void gameplay_init();
 static void gameplay_update();
 static void gameplay_handle_joy(u16 joy, u16 changed, u16 state);
 static void check_room_transition();
+static void goToGameplay();
+static void check_enemy_collisions();
 
 static void goToGameplay()
 {
@@ -66,6 +68,7 @@ static void gameplay_init()
 
     ENEMY_init();
     ENEMY_add(120, 184);
+    ENEMY_add(200, 184);
 
     JOY_setEventHandler(gameplay_handle_joy);
 }
@@ -77,6 +80,8 @@ void gameplay_update()
     PLAYER_update_anim();
 
     check_room_transition();
+
+    check_enemy_collisions();
 
     ENEMY_update_all();
 }
@@ -174,5 +179,44 @@ static void check_room_transition()
 
         if (player_x >= target_x + SCREEN_WIDTH) player_x = target_x + SCREEN_WIDTH - 16;
         if (player_x < target_x) player_x = target_x;
+    }
+}
+
+static void check_enemy_collisions()
+{
+    u16 p_left = player_x + 2;
+    u16 p_right = player_x + PLAYER_WIDTH - 2;
+    u16 p_top = player_y + 2;
+    u16 p_bottom = player_y + PLAYER_HEIGHT;
+
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        if (enemies[i].active)
+        {
+            u16 e_left = enemies[i].x + 2;
+            u16 e_right = enemies[i].x + 14;
+            u16 e_top = enemies[i].y + 4;
+            u16 e_bottom = enemies[i].y + 16;
+
+            if (p_right > e_left && p_left < e_right && p_bottom > e_top && p_top < e_bottom)
+            {
+                u16 e_middle_y = e_top + ((e_bottom - e_top) / 2);
+
+                if (!player_on_ground && (player_vy > FIX16(0)) && (p_bottom <= e_middle_y + 4))
+                {
+                    ENEMY_remove(i);
+                    
+                    player_vy = FIX16(-2.5); 
+                    player_jumps = 1;
+                    
+                    // (Opcional) Tocar um SFX de dano ou somar score aqui depois
+                }
+                else
+                {
+                    PLAYER_take_damage(enemies[i].x);
+                    // Todo: Decrementar o contador do sistema de vidas futuramente
+                }
+            }
+        }
     }
 }

@@ -73,3 +73,16 @@ void ENEMY_update_all()
         }
     }
 }
+
+void ENEMY_remove(u16 index)
+{
+    if (index < MAX_ENEMIES && enemies[index].active)
+    {
+        enemies[index].active = FALSE;
+        if (enemies[index].sprite != NULL)
+        {
+            SPR_releaseSprite(enemies[index].sprite);
+            enemies[index].sprite = NULL;
+        }
+    }
+}

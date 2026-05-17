@@ -13,6 +13,9 @@ typedef enum
     STATE_GAMEOVER
 } GameState;
 
+extern Map *bga;
+extern u16 camera_x;
+
 void GAME_start();
 
 #endif // _GAME_H_
