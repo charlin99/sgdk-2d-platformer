@@ -1,6 +1,7 @@
 #include "resources_def.h"
 #include "player.h"
 #include <resources.h>
+#include <game.h>
 
 Sprite *player;
 u16 player_x = 30;
@@ -11,6 +12,11 @@ u8 player_jumps = 0;
 u16 player_current_anim = -1;
 u8 walk_sfx_timer = 0;
 u8 player_hurt_timer = 0;
+
+u8 player_lives = 3;
+u8 player_health = 2;
+u16 player_spawn_x = 30;
+u16 player_spawn_y = 32;
 
 static s8 knockback_direction = 0;
 
@@ -193,6 +199,12 @@ void PLAYER_update()
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA (Respeitando o sistema de salas) ---
     SPR_setPosition(player, player_x - camera_x, player_y);
+
+    
+    if (player_y > SCREEN_HEIGHT + 16)
+    {
+        PLAYER_die();
+    }
 }
 
 void PLAYER_try_jump()
@@ -293,5 +305,29 @@ void PLAYER_take_damage(s16 enemy_x)
     else
     {
         knockback_direction = 1;
+    }
+}
+
+void PLAYER_die()
+{
+    if (player_lives > 0)
+    {
+        player_lives--;
+    }
+
+    if (player_lives > 0)
+    {
+        player_x = player_spawn_x;
+        player_y = player_spawn_y;
+        
+        player_vy = FIX16(0);
+        player_jumps = 0;
+        player_hurt_timer = 0;
+        player_on_ground = FALSE;
+        player_health = 2;
+    }
+    else
+    {
+        GAME_trigger_gameover();
     }
 }

@@ -6,6 +6,7 @@ SPRITE player_sprite "player_sprite.png" 2 2 FAST [[150,10,15,10][10,10,10,10,10
 SPRITE slime "slime.png" 2 2 FAST 30
 
 IMAGE title_screen "titlescreen.png" BEST
+IMAGE game_over_screen "gameoverscreen.png" BEST
 
 WAV sfx_jump "sfx/jump.wav" XGM
 WAV sfx_walk "sfx/walk.wav" XGM

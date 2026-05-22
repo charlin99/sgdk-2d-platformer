@@ -12,5 +12,6 @@ extern const MapDefinition level_map;
 extern const SpriteDefinition player_sprite;
 extern const SpriteDefinition slime;
 extern const Image title_screen;
+extern const Image game_over_screen;
 
 #endif // _RES_RESOURCES_H_

@@ -25,6 +25,8 @@ static void gameplay_handle_joy(u16 joy, u16 changed, u16 state);
 static void check_room_transition();
 static void goToGameplay();
 static void check_enemy_collisions();
+static void gameover_init();
+static void gameover_update();
 
 static void goToGameplay()
 {
@@ -67,6 +69,7 @@ static void gameplay_init()
     PLAYER_init();
 
     ENEMY_init();
+    ENEMY_add(60, 184);
     ENEMY_add(120, 184);
     ENEMY_add(200, 184);
 
@@ -114,6 +117,7 @@ void GAME_start()
                 break;
 
             case STATE_GAMEOVER:
+                gameover_update();
                 break;
 
             default:
@@ -208,15 +212,51 @@ static void check_enemy_collisions()
                     
                     player_vy = FIX16(-2.5); 
                     player_jumps = 1;
-                    
-                    // (Opcional) Tocar um SFX de dano ou somar score aqui depois
                 }
                 else
                 {
-                    PLAYER_take_damage(enemies[i].x);
-                    // Todo: Decrementar o contador do sistema de vidas futuramente
+                    if (player_hurt_timer == 0)
+                    {
+                        PLAYER_take_damage(enemies[i].x);
+                        if (player_health > 1)
+                        {
+                            player_health--; 
+                        }
+                        else
+                        {
+                            PLAYER_die(); 
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+void GAME_trigger_gameover()
+{
+    JOY_setEventHandler(NULL);
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+    SPR_end(); 
+
+    currentState = STATE_GAMEOVER;
+    gameover_init();
+}
+
+static void gameover_init()
+{
+    PAL_setPalette(PAL0, game_over_screen.palette->data, DMA);
+    
+    VDP_drawImageEx(BG_A, &game_over_screen, TILE_ATTR(PAL0, FALSE, FALSE, FALSE), 0, 0, FALSE, TRUE);
+}
+
+static void gameover_update()
+{
+    u16 value = JOY_readJoypad(JOY_1);
+
+    if (value & BUTTON_START)
+    {
+        SYS_hardReset(); 
     }
 }

@@ -27,6 +27,10 @@ extern u8 player_jumps;
 extern u16 player_current_anim;
 extern u8 walk_sfx_timer;
 extern u8 player_hurt_timer;
+extern u8 player_lives;
+extern u8 player_health;
+extern u16 player_spawn_x;
+extern u16 player_spawn_y;
 
 // --- Mapas Externos ---
 extern Map *bga;
@@ -40,6 +44,7 @@ void PLAYER_update_anim();
 void PLAYER_try_jump();
 void PLAYER_handle_joy(u16 changed, u16 state);
 void PLAYER_take_damage(s16 enemy_x);
+void PLAYER_die();
 
 // --- Funções de Checagem de Bloco ---
 bool is_hard_solid_at(u16 x, u16 y);
