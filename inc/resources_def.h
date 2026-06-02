@@ -13,5 +13,6 @@
 
 // Constantes de tile
 #define TILE_INDEX_PLATFORM 2
+#define TILE_INDEX_SPIKE 3
 
 #endif // _RESOURCES_DEF_H_

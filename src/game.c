@@ -11,6 +11,7 @@ Map *bga;
 
 u16 camera_x = 0;
 
+extern u8 player_lives;
 extern u16 player_x;
 extern u16 player_y;
 extern bool player_on_ground;
@@ -63,6 +64,9 @@ static void gameplay_init()
     bga = MAP_create(&level_map, BG_A, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX));
     MAP_scrollTo(bga, 0, 0);
 
+    PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
+
+    
     XGM_setPCM(SFX_JUMP_ID, sfx_jump, sizeof(sfx_jump));
     XGM_setPCM(SFX_WALK_ID, sfx_walk, sizeof(sfx_walk));
 
@@ -72,6 +76,8 @@ static void gameplay_init()
     ENEMY_add(60, 184);
     ENEMY_add(120, 184);
     ENEMY_add(200, 184);
+
+    GAME_update_hud();
 
     JOY_setEventHandler(gameplay_handle_joy);
 }
@@ -215,7 +221,7 @@ static void check_enemy_collisions()
                 }
                 else
                 {
-                    if (player_hurt_timer == 0)
+                    if (player_hurt_timer == 0 && player_invincible_timer == 0)
                     {
                         PLAYER_take_damage(enemies[i].x);
                         if (player_health > 1)
@@ -259,4 +265,19 @@ static void gameover_update()
     {
         SYS_hardReset(); 
     }
+}
+
+void GAME_update_hud()
+{
+    char vidas_texto[12];
+
+    u8 vidas_extras = 0;
+    if (player_lives > 0)
+    {
+        vidas_extras = player_lives - 1;
+    }
+
+    sprintf(vidas_texto, "VIDAS: %d", vidas_extras);
+
+    VDP_drawTextEx(BG_B, vidas_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 5, 4, DMA);
 }

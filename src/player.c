@@ -12,6 +12,7 @@ u8 player_jumps = 0;
 u16 player_current_anim = -1;
 u8 walk_sfx_timer = 0;
 u8 player_hurt_timer = 0;
+u8 player_invincible_timer = 0;
 
 u8 player_lives = 3;
 u8 player_health = 2;
@@ -29,7 +30,7 @@ void PLAYER_init()
 bool is_hard_solid_at(u16 x, u16 y)
 {
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile >= 1 && tile != TILE_INDEX_PLATFORM); 
+    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE); 
 }
 
 bool is_platform_at(u16 x, u16 y)
@@ -38,13 +39,19 @@ bool is_platform_at(u16 x, u16 y)
     return (tile == TILE_INDEX_PLATFORM);
 }
 
+bool is_spike_at(u16 x, u16 y)
+{
+    u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
+    return (tile == TILE_INDEX_SPIKE);
+}
+
 void PLAYER_handle_input()
 {
     if (player_hurt_timer > 0) return;
 
     u16 value = JOY_readJoypad(JOY_1);
 
-    u16 h_speed = (value & BUTTON_A) ? PLAYER_RUN_SPEED : PLAYER_H_SPEED;
+    u16 h_speed = (value & BUTTON_B) ? PLAYER_RUN_SPEED : PLAYER_H_SPEED;
 
     u16 check_y_top = player_y + 2;
     u16 check_y_center = player_y + (PLAYER_HEIGHT / 2);
@@ -99,7 +106,8 @@ void PLAYER_update()
             }
         }
 
-        player_vy = FIX16(0); // Garante que o Y fique travado reto durante o arrasto
+        player_vy += GRAVITY; // Garante que o Y fique travado reto durante o arrasto
+        if (player_vy > MAX_FALL_SPEED) player_vy = MAX_FALL_SPEED;
     }
     else
     {
@@ -168,6 +176,8 @@ void PLAYER_update()
 
     // --- PASSO 3: VERIFICAÇÃO DE ESTADO ON_GROUND ---
     u16 feet_y_check = player_y + PLAYER_HEIGHT;
+
+    u16 spike_y_check = feet_y_check - 4;
     
     bool on_hard_floor = is_hard_solid_at(check_x_left, feet_y_check) || 
                          is_hard_solid_at(check_x_center, feet_y_check) || 
@@ -176,6 +186,29 @@ void PLAYER_update()
     bool on_platform = is_platform_at(check_x_left, feet_y_check) || 
                        is_platform_at(check_x_center, feet_y_check) || 
                        is_platform_at(check_x_right, feet_y_check);
+
+    bool on_spike = is_spike_at(check_x_left, spike_y_check) || 
+                    is_spike_at(check_x_center, spike_y_check) || 
+                    is_spike_at(check_x_right, spike_y_check) ||
+                    is_spike_at(check_x_left, feet_y_check - 1) || // Mantém a base por segurança
+                    is_spike_at(check_x_right, feet_y_check - 1);
+
+    if (on_spike)
+    {
+        if (player_hurt_timer == 0 && player_invincible_timer == 0)
+        {
+            if (player_health > 1)
+            {
+                player_health--;
+                
+                PLAYER_take_damage(player_x + 8); 
+            }
+            else
+            {
+                PLAYER_die();
+            }
+        }
+    }
 
     if ((player_vy >= 0) && (on_hard_floor || on_platform))
     {
@@ -196,6 +229,25 @@ void PLAYER_update()
             }
         }
     }
+
+    if (player_invincible_timer > 0)
+    {
+        player_invincible_timer--;
+
+        if (player_invincible_timer & 1)
+        {
+            SPR_setVisibility(player, HIDDEN);
+        }
+        else
+        {
+            SPR_setVisibility(player, VISIBLE);
+        }
+    }
+    else
+    {
+        SPR_setVisibility(player, VISIBLE);
+    }
+    
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA (Respeitando o sistema de salas) ---
     SPR_setPosition(player, player_x - camera_x, player_y);
@@ -267,7 +319,7 @@ void PLAYER_update_anim()
 
 void PLAYER_handle_joy(u16 changed, u16 state)
 {
-    if (changed & state & BUTTON_B)
+    if (changed & state & BUTTON_A)
     {
         if (state & BUTTON_DOWN)
         {
@@ -296,15 +348,21 @@ void PLAYER_handle_joy(u16 changed, u16 state)
 
 void PLAYER_take_damage(s16 enemy_x)
 {
-    player_hurt_timer = 15;
-    
-    if (player_x < enemy_x)
+    player_hurt_timer = 20;
+    player_invincible_timer = 120;
+    player_on_ground = FALSE;
+
+    player_vy = FIX16(-1.8);
+
+    if (player_x + (PLAYER_WIDTH / 2) < enemy_x)
     {
         knockback_direction = -1;
+        SPR_setHFlip(player, FALSE);
     }
     else
     {
         knockback_direction = 1;
+        SPR_setHFlip(player, TRUE);
     }
 }
 
@@ -314,6 +372,8 @@ void PLAYER_die()
     {
         player_lives--;
     }
+
+    GAME_update_hud();
 
     if (player_lives > 0)
     {

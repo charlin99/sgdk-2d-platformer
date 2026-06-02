@@ -17,5 +17,7 @@ extern Map *bga;
 extern u16 camera_x;
 
 void GAME_start();
+void GAME_trigger_gameover();
+void GAME_update_hud();
 
 #endif // _GAME_H_
