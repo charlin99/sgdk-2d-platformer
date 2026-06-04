@@ -3,9 +3,13 @@
 
 // Constantes de animação
 #define ANIM_IDLE   0
-#define ANIM_WALK   1
-#define ANIM_JUMP   2
-#define ANIM_FALL   3
+#define ANIM_IDLE_ALT 1
+#define ANIM_WALK   2
+#define ANIM_WALK_ALT 3
+#define ANIM_JUMP   4
+#define ANIM_JUMP_ALT 5
+#define ANIM_FALL   6
+#define ANIM_FALL_ALT 7
 
 // Constantes de som
 #define SFX_JUMP_ID     64

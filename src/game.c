@@ -224,10 +224,10 @@ static void check_enemy_collisions()
                 {
                     if (player_hurt_timer == 0 && player_invincible_timer == 0)
                     {
-                        PLAYER_take_damage(enemies[i].x);
                         if (player_health > 1)
                         {
                             player_health--; 
+                            PLAYER_take_damage(enemies[i].x);
                         }
                         else
                         {

@@ -29,18 +29,24 @@ void PLAYER_init()
 
 bool is_hard_solid_at(u16 x, u16 y)
 {
+    if (y >= 224) return FALSE;
+
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE); 
 }
 
 bool is_platform_at(u16 x, u16 y)
 {
+    if (y >= 224) return FALSE;
+
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_PLATFORM);
 }
 
 bool is_spike_at(u16 x, u16 y)
 {
+    if (y >= 224) return FALSE;
+    
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE);
 }
@@ -51,7 +57,7 @@ void PLAYER_handle_input()
 
     u16 value = JOY_readJoypad(JOY_1);
 
-    u16 h_speed = (value & BUTTON_B) ? PLAYER_RUN_SPEED : PLAYER_H_SPEED;
+    u16 h_speed = (value & BUTTON_A) ? PLAYER_RUN_SPEED : PLAYER_H_SPEED;
 
     u16 check_y_top = player_y + 2;
     u16 check_y_center = player_y + (PLAYER_HEIGHT / 2);
@@ -248,15 +254,14 @@ void PLAYER_update()
         SPR_setVisibility(player, VISIBLE);
     }
     
+    if (player_y > SCREEN_HEIGHT + 16)
+    {
+        player_health = 1;
+        PLAYER_die();
+    }
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA (Respeitando o sistema de salas) ---
     SPR_setPosition(player, player_x - camera_x, player_y);
-
-    
-    if (player_y > SCREEN_HEIGHT + 16)
-    {
-        PLAYER_die();
-    }
 }
 
 void PLAYER_try_jump()
@@ -284,7 +289,9 @@ void PLAYER_update_anim()
         u16 value = JOY_readJoypad(JOY_1);
         if ((value & BUTTON_LEFT) || (value & BUTTON_RIGHT))
         {
-            new_anim = ANIM_WALK;
+            if (player_health == 2) new_anim = ANIM_WALK;
+            else new_anim = ANIM_WALK_ALT;
+
             if ((XGM_isPlayingPCM(SOUND_PCM_CH3) == 0)  && (walk_sfx_timer == 0))
             {
                 XGM_startPlayPCM(SFX_WALK_ID, 10, SOUND_PCM_CH2);
@@ -294,7 +301,8 @@ void PLAYER_update_anim()
         }
         else
         {
-            new_anim = ANIM_IDLE;
+            if (player_health == 2) new_anim = ANIM_IDLE;
+            else new_anim = ANIM_IDLE_ALT;
             XGM_stopPlayPCM(SOUND_PCM_CH3);
         }
     }
@@ -302,11 +310,13 @@ void PLAYER_update_anim()
     {
         if (player_vy < 0)
         {
-            new_anim = ANIM_JUMP;
+            if (player_health == 2) new_anim =  ANIM_JUMP;
+            else new_anim = ANIM_JUMP_ALT;
         }
         else if (player_vy > 60)
         {
-            new_anim = ANIM_FALL;
+            if (player_health == 2) new_anim =  ANIM_FALL;
+            else new_anim = ANIM_FALL_ALT;
         }
     }
 
@@ -319,7 +329,7 @@ void PLAYER_update_anim()
 
 void PLAYER_handle_joy(u16 changed, u16 state)
 {
-    if (changed & state & BUTTON_A)
+    if (changed & state & BUTTON_B)
     {
         if (state & BUTTON_DOWN)
         {
@@ -385,6 +395,8 @@ void PLAYER_die()
         player_vy = FIX16(0);
         player_jumps = 0;
         player_hurt_timer = 0;
+        player_invincible_timer = 0;
+        knockback_direction = 0;
         player_on_ground = FALSE;
         player_health = 2;
     }
