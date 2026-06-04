@@ -32,7 +32,7 @@ bool is_hard_solid_at(u16 x, u16 y)
     if (y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE); 
+    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING); 
 }
 
 bool is_platform_at(u16 x, u16 y)
@@ -46,9 +46,36 @@ bool is_platform_at(u16 x, u16 y)
 bool is_spike_at(u16 x, u16 y)
 {
     if (y >= 224) return FALSE;
-    
+
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile == TILE_INDEX_SPIKE);
+
+    return (tile == TILE_INDEX_SPIKE_FLOOR || 
+            tile == TILE_INDEX_SPIKE_WALL  || 
+            tile == TILE_INDEX_SPIKE_CEILING);
+}
+
+bool is_spike_floor_at(u16 x, u16 y)
+{
+    if (y >= 224) return FALSE;
+
+    u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
+    return (tile == TILE_INDEX_SPIKE_FLOOR);
+}
+
+bool is_spike_wall_at(u16 x, u16 y)
+{
+    if (y >= 224) return FALSE;
+
+    u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
+    return (tile == TILE_INDEX_SPIKE_WALL);
+}
+
+bool is_spike_ceiling_at(u16 x, u16 y)
+{
+    if (y >= 224) return FALSE;
+
+    u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
+    return (tile == TILE_INDEX_SPIKE_CEILING);
 }
 
 void PLAYER_handle_input()
@@ -112,8 +139,15 @@ void PLAYER_update()
             }
         }
 
-        player_vy += GRAVITY; // Garante que o Y fique travado reto durante o arrasto
-        if (player_vy > MAX_FALL_SPEED) player_vy = MAX_FALL_SPEED;
+        if (knockback_direction == 0)
+        {
+            player_vy = FIX16(2.5);
+        }
+        else
+        {
+            player_vy += GRAVITY; 
+            if (player_vy > MAX_FALL_SPEED) player_vy = MAX_FALL_SPEED;
+        }
     }
     else
     {
@@ -182,8 +216,9 @@ void PLAYER_update()
 
     // --- PASSO 3: VERIFICAÇÃO DE ESTADO ON_GROUND ---
     u16 feet_y_check = player_y + PLAYER_HEIGHT;
-
     u16 spike_y_check = feet_y_check - 4;
+    u16 head_y_check = player_y + 2;
+    u16 body_y_center = player_y + (PLAYER_HEIGHT / 2);
     
     bool on_hard_floor = is_hard_solid_at(check_x_left, feet_y_check) || 
                          is_hard_solid_at(check_x_center, feet_y_check) || 
@@ -196,22 +231,76 @@ void PLAYER_update()
     bool on_spike = is_spike_at(check_x_left, spike_y_check) || 
                     is_spike_at(check_x_center, spike_y_check) || 
                     is_spike_at(check_x_right, spike_y_check) ||
-                    is_spike_at(check_x_left, feet_y_check - 1) || // Mantém a base por segurança
-                    is_spike_at(check_x_right, feet_y_check - 1);
+                    is_spike_at(check_x_left, feet_y_check - 1) ||
+                    is_spike_at(check_x_right, feet_y_check - 1) ||
+                    is_spike_at(check_x_center, head_y_check) ||
+                    is_spike_at(check_x_left, body_y_center) ||
+                    is_spike_at(check_x_right, body_y_center);
 
     if (on_spike)
     {
         if (player_hurt_timer == 0 && player_invincible_timer == 0)
         {
-            if (player_health > 1)
+            bool hit_ceiling_spike = is_spike_ceiling_at(check_x_center, player_y + 2);
+
+            u16 body_y_center = player_y + (PLAYER_HEIGHT / 2);
+            bool hit_wall_spike = is_spike_wall_at(check_x_left, body_y_center) || is_spike_wall_at(check_x_right, body_y_center);
+
+            if (hit_ceiling_spike)
             {
-                player_health--;
-                
-                PLAYER_take_damage(player_x + 8); 
+                if (player_health > 1)
+                {
+                    player_health--;
+                    PLAYER_take_damage(-999);
+                    player_y += 4;
+                    player_vy = FIX16(4.0);
+                }
+                else
+                {
+                    PLAYER_die();
+                    return;
+                }
+            }
+            else if (hit_wall_spike)
+            {
+                if (player_health > 1)
+                {
+                    player_health--;
+                    if (is_spike_wall_at(check_x_left, body_y_center))
+                    {
+                        PLAYER_take_damage(player_x - 32);
+                    }
+                    else
+                    {
+                        PLAYER_take_damage(player_x + 32);
+                    }
+                }
+                else
+                {
+                    PLAYER_die();
+                    return;
+                }
             }
             else
             {
-                PLAYER_die();
+                if (player_health > 1)
+                {
+                    player_health--;
+                
+                    if ((player->attribut & TILE_ATTR_HFLIP_MASK) == 0)
+                    {
+                        PLAYER_take_damage(player_x + 32); 
+                    }
+                    else
+                    {
+                        PLAYER_take_damage(player_x - 32); 
+                    } 
+                }
+                else
+                {
+                    PLAYER_die();
+                    return;
+                }
             }
         }
     }
@@ -362,19 +451,28 @@ void PLAYER_take_damage(s16 enemy_x)
     player_invincible_timer = 120;
     player_on_ground = FALSE;
 
-    player_vy = FIX16(-1.8);
-
     XGM_startPlayPCM(SFX_HURT_ID, 15, SOUND_PCM_CH2);
 
-    if (player_x + (PLAYER_WIDTH / 2) < enemy_x)
+    if (enemy_x == -999)
     {
-        knockback_direction = -1;
-        SPR_setHFlip(player, FALSE);
+        player_vy = FIX16(3.0); 
+        knockback_direction = 0; 
     }
     else
     {
-        knockback_direction = 1;
-        SPR_setHFlip(player, TRUE);
+        player_vy = FIX16(-1.8);
+
+
+        if (player_x + (PLAYER_WIDTH / 2) < enemy_x)
+        {
+            knockback_direction = -1;
+            SPR_setHFlip(player, FALSE);
+        }
+        else
+        {
+            knockback_direction = 1;
+            SPR_setHFlip(player, TRUE);
+        }
     }
 }
 

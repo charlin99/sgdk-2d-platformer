@@ -51,5 +51,8 @@ void PLAYER_die();
 bool is_hard_solid_at(u16 x, u16 y);
 bool is_platform_at(u16 x, u16 y);
 bool is_spike_at(u16 x, u16 y);
+bool is_spike_floor_at(u16 x, u16 y);
+bool is_spike_wall_at(u16 x, u16 y);
+bool is_spike_ceiling_at(u16 x, u16 y);
 
 #endif // _PLAYER_H_

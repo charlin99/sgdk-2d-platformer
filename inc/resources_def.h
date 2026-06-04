@@ -18,6 +18,8 @@
 
 // Constantes de tile
 #define TILE_INDEX_PLATFORM 2
-#define TILE_INDEX_SPIKE 3
+#define TILE_INDEX_SPIKE_FLOOR 3
+#define TILE_INDEX_SPIKE_CEILING 4
+#define TILE_INDEX_SPIKE_WALL 5
 
 #endif // _RESOURCES_DEF_H_

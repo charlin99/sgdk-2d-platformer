@@ -85,8 +85,13 @@ static void gameplay_init()
 
 void gameplay_update()
 {
+    if (currentState != STATE_PLAYING) return;
+
     PLAYER_handle_input();
     PLAYER_update();
+
+    if (currentState != STATE_PLAYING) return;
+
     PLAYER_update_anim();
 
     check_room_transition();
@@ -131,8 +136,11 @@ void GAME_start()
                 break;
         }
         
-    SPR_update();
-    //VDP_waitVSync();
+    if (currentState == STATE_PLAYING || currentState == STATE_TITLE)
+    {
+        SPR_update();
+    }
+    
     SYS_doVBlankProcess();
     }
 
@@ -140,6 +148,8 @@ void GAME_start()
 
 static void check_room_transition()
 {
+    if (currentState != STATE_PLAYING) return;
+
     u16 target_x = camera_x;
     bool transitioning = FALSE;
 
@@ -169,6 +179,8 @@ static void check_room_transition()
 
         while (camera_x != target_x)
         {
+            if (currentState != STATE_PLAYING) break;
+
             if (camera_x < target_x) {
                 camera_x += 10;
             } else {
@@ -232,6 +244,7 @@ static void check_enemy_collisions()
                         else
                         {
                             PLAYER_die(); 
+                            return;
                         }
                     }
                 }
@@ -243,11 +256,28 @@ static void check_enemy_collisions()
 void GAME_trigger_gameover()
 {
     JOY_setEventHandler(NULL);
-    VDP_clearPlane(BG_A, TRUE);
-    VDP_clearPlane(BG_B, TRUE);
-    SPR_end(); 
 
     currentState = STATE_GAMEOVER;
+
+    if (bga != NULL)
+    {
+        MAP_release(bga);
+        bga = NULL;
+    }
+    
+    camera_x = 0;
+    VDP_setHorizontalScroll(BG_A, 0);
+    VDP_setHorizontalScroll(BG_B, 0);
+    VDP_setVerticalScroll(BG_A, 0);
+    VDP_setVerticalScroll(BG_B, 0);
+
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+
+    SPR_end(); 
+
+    VDP_clearTextArea(0, 0, 64, 32);
+
     gameover_init();
 }
 
@@ -255,7 +285,7 @@ static void gameover_init()
 {
     PAL_setPalette(PAL0, game_over_screen.palette->data, DMA);
     
-    VDP_drawImageEx(BG_A, &game_over_screen, TILE_ATTR(PAL0, FALSE, FALSE, FALSE), 0, 0, FALSE, TRUE);
+    VDP_drawImageEx(BG_A, &game_over_screen, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), 0, 0, FALSE, TRUE);
 }
 
 static void gameover_update()
