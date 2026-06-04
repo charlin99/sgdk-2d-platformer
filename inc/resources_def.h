@@ -10,6 +10,7 @@
 // Constantes de som
 #define SFX_JUMP_ID     64
 #define SFX_WALK_ID     65
+#define SFX_HURT_ID     66
 
 // Constantes de tile
 #define TILE_INDEX_PLATFORM 2

@@ -10,3 +10,4 @@ IMAGE game_over_screen "gameoverscreen.png" BEST
 
 WAV sfx_jump "sfx/jump.wav" XGM
 WAV sfx_walk "sfx/walk.wav" XGM
+WAV sfx_hurt "sfx/hurt.wav" XGM

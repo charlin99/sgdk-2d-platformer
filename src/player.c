@@ -287,7 +287,7 @@ void PLAYER_update_anim()
             new_anim = ANIM_WALK;
             if ((XGM_isPlayingPCM(SOUND_PCM_CH3) == 0)  && (walk_sfx_timer == 0))
             {
-                XGM_startPlayPCM(SFX_WALK_ID, 10, SOUND_PCM_CH3);
+                XGM_startPlayPCM(SFX_WALK_ID, 10, SOUND_PCM_CH2);
                 
                 walk_sfx_timer = 30;
             }
@@ -353,6 +353,8 @@ void PLAYER_take_damage(s16 enemy_x)
     player_on_ground = FALSE;
 
     player_vy = FIX16(-1.8);
+
+    XGM_startPlayPCM(SFX_HURT_ID, 15, SOUND_PCM_CH2);
 
     if (player_x + (PLAYER_WIDTH / 2) < enemy_x)
     {

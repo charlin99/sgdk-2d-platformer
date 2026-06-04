@@ -69,6 +69,7 @@ static void gameplay_init()
     
     XGM_setPCM(SFX_JUMP_ID, sfx_jump, sizeof(sfx_jump));
     XGM_setPCM(SFX_WALK_ID, sfx_walk, sizeof(sfx_walk));
+    XGM_setPCM(SFX_HURT_ID, sfx_hurt, sizeof(sfx_hurt));
 
     PLAYER_init();
 
