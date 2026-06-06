@@ -8,10 +8,10 @@ extern const u8 sfx_walk[2560];
 extern const u8 sfx_hurt[1536];
 extern const Palette level_palette;
 extern const TileSet level_tileset;
-extern const TileSet level_map_tileset0;
 extern const MapDefinition level_map;
 extern const SpriteDefinition player_sprite;
 extern const SpriteDefinition slime;
+extern const SpriteDefinition cannonball_sprite;
 extern const Image title_screen;
 extern const Image game_over_screen;
 

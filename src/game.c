@@ -3,6 +3,7 @@
 #include "enemy.h"
 #include "resources.h"
 #include "resources_def.h"
+#include "cannon.h"
 
 #define MARGIN 10
 
@@ -72,11 +73,12 @@ static void gameplay_init()
     XGM_setPCM(SFX_HURT_ID, sfx_hurt, sizeof(sfx_hurt));
 
     PLAYER_init();
-
     ENEMY_init();
-    ENEMY_add(60, 184);
-    ENEMY_add(120, 184);
-    ENEMY_add(200, 184);
+    CANNON_init();
+
+    ENEMY_add(60, 192);
+    ENEMY_add(120, 192);
+    ENEMY_add(200, 192);
 
     GAME_update_hud();
 
@@ -99,6 +101,7 @@ void gameplay_update()
     check_enemy_collisions();
 
     ENEMY_update_all();
+    CANNON_update();
 }
 
 void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
