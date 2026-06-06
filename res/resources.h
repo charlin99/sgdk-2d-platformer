@@ -6,6 +6,7 @@
 extern const u8 sfx_jump[2304];
 extern const u8 sfx_walk[2560];
 extern const u8 sfx_hurt[1536];
+extern const u8 sfx_cannon[768];
 extern const Palette level_palette;
 extern const TileSet level_tileset;
 extern const MapDefinition level_map;

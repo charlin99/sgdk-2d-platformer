@@ -1,6 +1,7 @@
 #include "cannon.h"
 #include "player.h"
 #include "resources.h"
+#include <resources_def.h>
 
 #define MAX_BULLETS 4
 #define FIRE_COOLDOWN 120
@@ -41,6 +42,7 @@ static void spawn_bullet(s16 x, s16 y, s16 dir_x)
             bullets[i].active = TRUE;
 
             bullets[i].sprite = SPR_addSprite(&cannonball_sprite, x, y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
+            XGM_startPlayPCM(SFX_CANNON_ID, 15, SOUND_PCM_CH2);
             break;
         }
     }

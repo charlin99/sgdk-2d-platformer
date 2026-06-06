@@ -15,7 +15,10 @@ u16 camera_x = 0;
 extern u8 player_lives;
 extern u16 player_x;
 extern u16 player_y;
-extern bool player_on_ground;
+
+u16 game_time_seconds = HUD_TIMER;
+u8 game_frame_counter = 0;
+u16 score = 0;
 
 extern Enemy enemies[MAX_ENEMIES];
 
@@ -29,6 +32,7 @@ static void goToGameplay();
 static void check_enemy_collisions();
 static void gameover_init();
 static void gameover_update();
+static void update_camera();
 
 static void goToGameplay()
 {
@@ -71,6 +75,7 @@ static void gameplay_init()
     XGM_setPCM(SFX_JUMP_ID, sfx_jump, sizeof(sfx_jump));
     XGM_setPCM(SFX_WALK_ID, sfx_walk, sizeof(sfx_walk));
     XGM_setPCM(SFX_HURT_ID, sfx_hurt, sizeof(sfx_hurt));
+    XGM_setPCM(SFX_CANNON_ID, sfx_cannon, sizeof(sfx_cannon));
 
     PLAYER_init();
     ENEMY_init();
@@ -102,6 +107,28 @@ void gameplay_update()
 
     ENEMY_update_all();
     CANNON_update();
+
+    game_frame_counter++;
+    if (game_frame_counter >= 60)
+    {
+        game_frame_counter = 0;
+
+        if (game_time_seconds > 0)
+        {
+            game_time_seconds--;
+            
+            
+            GAME_update_hud(); 
+        }
+        else
+        {
+            player_health = 1;
+            PLAYER_die();
+            return;
+        }
+    }
+
+    //update_camera();
 }
 
 void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
@@ -234,6 +261,8 @@ static void check_enemy_collisions()
                     
                     player_vy = FIX16(-2.5); 
                     player_jumps = 1;
+                    score += 10;
+                    GAME_update_hud();
                 }
                 else
                 {
@@ -304,6 +333,8 @@ static void gameover_update()
 void GAME_update_hud()
 {
     char vidas_texto[12];
+    char tempo_texto[12];
+    char score_texto[16];
 
     u8 vidas_extras = 0;
     if (player_lives > 0)
@@ -311,7 +342,23 @@ void GAME_update_hud()
         vidas_extras = player_lives - 1;
     }
 
-    sprintf(vidas_texto, "VIDAS: %d", vidas_extras);
+    //sprintf(vidas_texto, "LIVES: %d", vidas_extras);
+    sprintf(tempo_texto, "TIMER: %d ", game_time_seconds);
+    sprintf(score_texto, "SCORE: %d", score);
 
-    VDP_drawTextEx(BG_B, vidas_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 5, 4, DMA);
+    //VDP_drawTextEx(BG_B, vidas_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 0, DMA);
+    VDP_drawTextEx(BG_B, score_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
+    VDP_drawTextEx(BG_B, tempo_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
+}
+
+static void update_camera()
+{
+    s16 target_x = player_x - (320 / 2) + (PLAYER_WIDTH / 2);
+
+    if (target_x < 0) target_x = 0;
+    if (target_x > (level_map.w * 128) - 320) target_x = (level_map.w * 128) - 320;
+
+    camera_x = target_x;
+
+    MAP_scrollTo(bga, camera_x, 0);
 }

@@ -29,7 +29,7 @@ void PLAYER_init()
 
 bool is_hard_solid_at(u16 x, u16 y)
 {
-    if (y >= 224) return FALSE;
+    if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING); 
@@ -37,7 +37,7 @@ bool is_hard_solid_at(u16 x, u16 y)
 
 bool is_platform_at(u16 x, u16 y)
 {
-    if (y >= 224) return FALSE;
+    if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_PLATFORM);
@@ -45,7 +45,7 @@ bool is_platform_at(u16 x, u16 y)
 
 bool is_spike_at(u16 x, u16 y)
 {
-    if (y >= 224) return FALSE;
+    if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
 
@@ -56,7 +56,7 @@ bool is_spike_at(u16 x, u16 y)
 
 bool is_spike_floor_at(u16 x, u16 y)
 {
-    if (y >= 224) return FALSE;
+    if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE_FLOOR);
@@ -64,7 +64,7 @@ bool is_spike_floor_at(u16 x, u16 y)
 
 bool is_spike_wall_at(u16 x, u16 y)
 {
-    if (y >= 224) return FALSE;
+    if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE_WALL);
@@ -72,7 +72,7 @@ bool is_spike_wall_at(u16 x, u16 y)
 
 bool is_spike_ceiling_at(u16 x, u16 y)
 {
-    if (y >= 224) return FALSE;
+    if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE_CEILING);
@@ -212,6 +212,12 @@ void PLAYER_update()
                 break;
             }
         }
+    }
+
+    if (player_y < 24)
+    {
+        player_y = 24;
+        player_vy = FIX16(0);
     }
 
     // --- PASSO 3: VERIFICAÇÃO DE ESTADO ON_GROUND ---
@@ -497,6 +503,15 @@ void PLAYER_die()
         knockback_direction = 0;
         player_on_ground = FALSE;
         player_health = 2;
+
+        extern u16 game_time_seconds;
+        extern u8 game_frame_counter;
+
+        game_time_seconds = HUD_TIMER;
+        game_frame_counter = 0;
+
+        GAME_update_hud();
+
     }
     else
     {

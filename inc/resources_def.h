@@ -15,11 +15,15 @@
 #define SFX_JUMP_ID     64
 #define SFX_WALK_ID     65
 #define SFX_HURT_ID     66
+#define SFX_CANNON_ID   67
 
 // Constantes de tile
 #define TILE_INDEX_PLATFORM 2
 #define TILE_INDEX_SPIKE_FLOOR 3
 #define TILE_INDEX_SPIKE_CEILING 4
 #define TILE_INDEX_SPIKE_WALL 5
+
+// Constantes de HUD
+#define HUD_TIMER 120
 
 #endif // _RESOURCES_DEF_H_
