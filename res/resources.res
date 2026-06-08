@@ -1,10 +1,11 @@
 PALETTE level_palette "tileset.png"
-TILESET level_tileset "tileset.png" BEST ALL
+TILESET level_tileset "tileset_invisible.png" BEST ALL
 MAP level_map "level_test2.tmx" LevelDesign BEST
 
 SPRITE player_sprite "player_sprite.png" 2 2 FAST [[150,10,15,10][150,10,15,10][10,10,10,10,10,10][10,10,10,10,10,10][0][0][0][0]]
 SPRITE slime "slime.png" 2 2 FAST 30
 SPRITE cannonball_sprite "cannonball_sprite.png" 1 1 FAST
+SPRITE life "life.png" 2 2 BEST
 
 IMAGE title_screen "titlescreen.png" BEST
 IMAGE game_over_screen "gameoverscreen.png" BEST

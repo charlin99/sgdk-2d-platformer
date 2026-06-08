@@ -1,6 +1,7 @@
 #include "game.h"
 #include "enemy.h"
 #include "resources.h"
+#include <resources_def.h>
 
 #define ENEMY_SPEED     1
 #define ENEMY_MOVE_DELAY 3
@@ -83,6 +84,33 @@ void ENEMY_remove(u16 index)
         {
             SPR_releaseSprite(enemies[index].sprite);
             enemies[index].sprite = NULL;
+        }
+    }
+}
+
+void ENEMY_populate_from_map()
+{
+    ENEMY_init();
+
+
+    u16 map_width = level_map.w * 16;
+    u16 map_height = level_map.h * 16;
+
+    for (u16 ty = 0; ty < map_height; ty++)
+    {
+        for (u16 tx = 0; tx < map_width; tx++)
+        {
+            u16 tile_attr = MAP_getTile(bga, tx, ty);
+            u16 tile = (tile_attr & TILE_INDEX_MASK);
+
+            if (tile == TILE_INDEX_ENEMY_SPAWN)
+            {
+                u16 pixel_x = (tx * 8) - 4;
+                
+                u16 pixel_y = (ty * 8) - 8; 
+
+                ENEMY_add(pixel_x, pixel_y);
+            }
         }
     }
 }

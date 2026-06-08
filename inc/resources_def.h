@@ -23,6 +23,8 @@
 #define TILE_INDEX_SPIKE_CEILING 4
 #define TILE_INDEX_SPIKE_WALL 5
 
+#define TILE_INDEX_ENEMY_SPAWN 9
+
 // Constantes de HUD
 #define HUD_TIMER 120
 

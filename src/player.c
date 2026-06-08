@@ -32,7 +32,7 @@ bool is_hard_solid_at(u16 x, u16 y)
     if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING); 
+    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN); 
 }
 
 bool is_platform_at(u16 x, u16 y)
@@ -489,29 +489,11 @@ void PLAYER_die()
         player_lives--;
     }
 
-    GAME_update_hud();
-
     if (player_lives > 0)
     {
-        player_x = player_spawn_x;
-        player_y = player_spawn_y;
+        extern void GAME_show_life_screen();
         
-        player_vy = FIX16(0);
-        player_jumps = 0;
-        player_hurt_timer = 0;
-        player_invincible_timer = 0;
-        knockback_direction = 0;
-        player_on_ground = FALSE;
-        player_health = 2;
-
-        extern u16 game_time_seconds;
-        extern u8 game_frame_counter;
-
-        game_time_seconds = HUD_TIMER;
-        game_frame_counter = 0;
-
-        GAME_update_hud();
-
+        GAME_show_life_screen();
     }
     else
     {

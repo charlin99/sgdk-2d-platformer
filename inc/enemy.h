@@ -9,6 +9,7 @@ void ENEMY_init();
 void ENEMY_add(u16 x, u16 y);
 void ENEMY_update_all();
 void ENEMY_remove(u16 index);
+void ENEMY_populate_from_map();
 
 typedef struct
 {
