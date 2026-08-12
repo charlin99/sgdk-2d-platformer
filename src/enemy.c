@@ -75,6 +75,31 @@ void ENEMY_update_all()
     }
 }
 
+void ENEMY_clear()
+{
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        if (enemies[i].sprite != NULL)
+        {
+            SPR_releaseSprite(enemies[i].sprite);
+        }
+
+        enemies[i].active = FALSE;
+        enemies[i].sprite = NULL;
+    }
+}
+
+void ENEMY_set_animations_paused(bool paused)
+{
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        if (enemies[i].active && enemies[i].sprite != NULL)
+        {
+            SPR_setAutoAnimation(enemies[i].sprite, !paused);
+        }
+    }
+}
+
 void ENEMY_remove(u16 index)
 {
     if (index < MAX_ENEMIES && enemies[index].active)
@@ -90,7 +115,7 @@ void ENEMY_remove(u16 index)
 
 void ENEMY_populate_from_map()
 {
-    ENEMY_init();
+    ENEMY_clear();
 
 
     u16 map_width = level_map.w * 16;
@@ -106,10 +131,12 @@ void ENEMY_populate_from_map()
             if (tile == TILE_INDEX_ENEMY_SPAWN)
             {
                 u16 pixel_x = (tx * 8) - 4;
-                
                 u16 pixel_y = (ty * 8) - 8; 
 
-                ENEMY_add(pixel_x, pixel_y);
+                if (pixel_x >= camera_x && pixel_x < camera_x + SCREEN_WIDTH)
+                {
+                    ENEMY_add(pixel_x, pixel_y);
+                }
             }
         }
     }

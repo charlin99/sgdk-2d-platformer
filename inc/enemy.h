@@ -6,8 +6,10 @@
 #include <genesis.h>
 
 void ENEMY_init();
+void ENEMY_clear();
 void ENEMY_add(u16 x, u16 y);
 void ENEMY_update_all();
+void ENEMY_set_animations_paused(bool paused);
 void ENEMY_remove(u16 index);
 void ENEMY_populate_from_map();
 

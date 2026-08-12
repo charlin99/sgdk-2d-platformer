@@ -25,6 +25,27 @@ static s8 knockback_direction = 0;
 void PLAYER_init()
 {
     player = SPR_addSprite(&player_sprite, player_x, player_y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
+    player_current_anim = (u16) -1;
+}
+
+void PLAYER_reset_at_spawn()
+{
+    player_x = player_spawn_x;
+    player_y = player_spawn_y;
+    player_vy = FIX16(0);
+    player_jumps = 0;
+    player_hurt_timer = 0;
+    player_invincible_timer = 0;
+    player_on_ground = FALSE;
+    player_health = 2;
+    player_current_anim = (u16) -1;
+    walk_sfx_timer = 0;
+    knockback_direction = 0;
+}
+
+void PLAYER_clear_sprite()
+{
+    player = NULL;
 }
 
 bool is_hard_solid_at(u16 x, u16 y)
@@ -92,10 +113,13 @@ void PLAYER_handle_input()
 
     if (value & BUTTON_LEFT)
     {
-        u16 next_x = player_x - h_speed;
-        if (!is_hard_solid_at(next_x, check_y_top) && !is_hard_solid_at(next_x, check_y_center) && !is_hard_solid_at(next_x, check_y_bottom))
+        if (player_x >= h_speed)
         {
-            player_x -= h_speed;
+            u16 next_x = player_x - h_speed;
+            if (!is_hard_solid_at(next_x, check_y_top) && !is_hard_solid_at(next_x, check_y_center) && !is_hard_solid_at(next_x, check_y_bottom))
+            {
+                player_x -= h_speed;
+            }
         }
         SPR_setHFlip(player, TRUE);
     }
@@ -353,6 +377,7 @@ void PLAYER_update()
     {
         player_health = 1;
         PLAYER_die();
+        return;
     }
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA (Respeitando o sistema de salas) ---
@@ -422,6 +447,14 @@ void PLAYER_update_anim()
     }
 }
 
+void PLAYER_set_animation_paused(bool paused)
+{
+    if (player != NULL)
+    {
+        SPR_setAutoAnimation(player, !paused);
+    }
+}
+
 void PLAYER_handle_joy(u16 changed, u16 state)
 {
     if (changed & state & BUTTON_B)
@@ -484,6 +517,8 @@ void PLAYER_take_damage(s16 enemy_x)
 
 void PLAYER_die()
 {
+    if (GAME_is_life_screen_active()) return;
+
     if (player_lives > 0)
     {
         player_lives--;
@@ -491,8 +526,6 @@ void PLAYER_die()
 
     if (player_lives > 0)
     {
-        extern void GAME_show_life_screen();
-        
         GAME_show_life_screen();
     }
     else

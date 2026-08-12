@@ -20,11 +20,29 @@ static const CannonPoint cannon_table[] = {
 static Bullet bullets[MAX_BULLETS];
 static u16 fire_timer = 0;
 
+static bool has_cannon_in_current_room()
+{
+    for (u16 i = 0; i < CANNON_COUNT; i++)
+    {
+        if (cannon_table[i].x >= camera_x && cannon_table[i].x < camera_x + 320)
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 void CANNON_init()
 {
     fire_timer = 0;
     for (u16 i = 0; i < MAX_BULLETS; i++)
     {
+        if (bullets[i].sprite != NULL)
+        {
+            SPR_releaseSprite(bullets[i].sprite);
+        }
+
         bullets[i].sprite = NULL;
         bullets[i].active = FALSE;
     }
@@ -50,6 +68,12 @@ static void spawn_bullet(s16 x, s16 y, s16 dir_x)
 
 void CANNON_update()
 {
+    if (!has_cannon_in_current_room())
+    {
+        CANNON_init();
+        return;
+    }
+
     fire_timer++;
     if (fire_timer >= FIRE_COOLDOWN)
     {
@@ -90,6 +114,7 @@ void CANNON_update()
                     else
                     {
                         PLAYER_die();
+                        return;
                     }
                 }
 

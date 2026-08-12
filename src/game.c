@@ -5,7 +5,8 @@
 #include "resources_def.h"
 #include "cannon.h"
 
-#define MARGIN 10
+#define PAUSE_TEXT_X 17
+#define PAUSE_TEXT_Y 14
 
 static GameState currentState;
 Map *bga;
@@ -14,16 +15,13 @@ static Sprite* hud_life_icon_sprite = NULL;
 
 u16 camera_x = 0;
 
-extern u8 player_lives;
-extern u16 player_x;
-extern u16 player_y;
-
 u16 game_time_seconds = HUD_TIMER;
 u8 game_frame_counter = 0;
 u16 score = 0;
 
 static bool is_in_life_screen = FALSE;
 static u16 life_screen_timer = 0;
+static bool is_paused = FALSE;
 
 extern Enemy enemies[MAX_ENEMIES];
 
@@ -37,7 +35,7 @@ static void goToGameplay();
 static void check_enemy_collisions();
 static void gameover_init();
 static void gameover_update();
-static void update_camera();
+static void respawn_player();
 
 static void goToGameplay()
 {
@@ -68,6 +66,7 @@ static void title_update()
 
 static void gameplay_init()
 {
+    is_paused = FALSE;
     PAL_setPalette(PAL0, level_palette.data, DMA);
     VDP_loadTileSet(&level_tileset, TILE_USER_INDEX, DMA);
 
@@ -103,53 +102,18 @@ void gameplay_update()
         
         if (life_screen_timer >= 180) 
         {
-            is_in_life_screen = FALSE;
-            
-            player_x = player_spawn_x;
-            player_y = player_spawn_y;
-            player_vy = FIX16(0);
-            player_jumps = 0;
-            player_hurt_timer = 0;
-            player_invincible_timer = 0;
-            player_on_ground = FALSE;
-            player_health = 2;
-
-            extern u16 game_time_seconds;
-            extern u8 game_frame_counter;
-            game_time_seconds = HUD_TIMER;
-            game_frame_counter = 0;
-
-            if (hud_life_icon_sprite != NULL)
-            {
-                SPR_releaseSprite(hud_life_icon_sprite);
-                hud_life_icon_sprite = NULL;
-            }
-
-            VDP_clearPlane(BG_B, TRUE);
-            VDP_clearPlane(BG_A, TRUE);
-
-            MAP_scrollToEx(bga, camera_x, 0, TRUE);
-
-            PLAYER_init(); 
-            SPR_setVisibility(player, VISIBLE);
-
-            SYS_doVBlankProcess();
-
-            ENEMY_populate_from_map();
-
-            MAP_scrollToEx(bga, camera_x, 0, TRUE);
-            
-            SPR_setVisibility(player, VISIBLE); 
-            GAME_update_hud();
+            respawn_player();
         }
         
         return; 
     }
 
+    if (is_paused) return;
+
     PLAYER_handle_input();
     PLAYER_update();
 
-    if (currentState != STATE_PLAYING) return;
+    if (is_in_life_screen || currentState != STATE_PLAYING) return;
 
     PLAYER_update_anim();
 
@@ -157,8 +121,12 @@ void gameplay_update()
 
     check_enemy_collisions();
 
+    if (is_in_life_screen || currentState != STATE_PLAYING) return;
+
     ENEMY_update_all();
     CANNON_update();
+
+    if (is_in_life_screen || currentState != STATE_PLAYING) return;
 
     game_frame_counter++;
     if (game_frame_counter >= 60)
@@ -180,12 +148,30 @@ void gameplay_update()
         }
     }
 
-    //update_camera();
 }
 
 void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
 {
-    if (joy == JOY_1)
+    if (joy != JOY_1) return;
+
+    if (changed & state & BUTTON_START)
+    {
+        is_paused = !is_paused;
+        PLAYER_set_animation_paused(is_paused);
+        ENEMY_set_animations_paused(is_paused);
+
+        if (is_paused)
+        {
+            VDP_drawTextEx(BG_B, "PAUSE", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), PAUSE_TEXT_X, PAUSE_TEXT_Y, DMA);
+        }
+        else
+        {
+            VDP_drawTextEx(BG_B, "     ", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), PAUSE_TEXT_X, PAUSE_TEXT_Y, DMA);
+        }
+        return;
+    }
+
+    if (!is_paused)
     {
         PLAYER_handle_joy(changed, state);
     }
@@ -284,6 +270,9 @@ static void check_room_transition()
 
         if (player_x >= target_x + SCREEN_WIDTH) player_x = target_x + SCREEN_WIDTH - 16;
         if (player_x < target_x) player_x = target_x;
+
+        ENEMY_populate_from_map();
+        CANNON_init();
     }
 }
 
@@ -384,51 +373,38 @@ static void gameover_update()
 
 void GAME_update_hud()
 {
-    char vidas_texto[12];
     char tempo_texto[12];
     char score_texto[16];
 
-    u8 vidas_extras = 0;
-    if (player_lives > 0)
-    {
-        vidas_extras = player_lives - 1;
-    }
-
-    //sprintf(vidas_texto, "LIVES: %d", vidas_extras);
     sprintf(tempo_texto, "TIMER: %d ", game_time_seconds);
     sprintf(score_texto, "SCORE: %d", score);
 
-    //VDP_drawTextEx(BG_B, vidas_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 0, DMA);
     VDP_drawTextEx(BG_B, score_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
     VDP_drawTextEx(BG_B, tempo_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
 }
 
-static void update_camera()
-{
-    s16 target_x = player_x - (320 / 2) + (PLAYER_WIDTH / 2);
-
-    if (target_x < 0) target_x = 0;
-    if (target_x > (level_map.w * 128) - 320) target_x = (level_map.w * 128) - 320;
-
-    camera_x = target_x;
-
-    MAP_scrollTo(bga, camera_x, 0);
-}
-
 void GAME_show_life_screen()
 {
+    if (is_in_life_screen || currentState != STATE_PLAYING) return;
+
     is_in_life_screen = TRUE;
+    is_paused = FALSE;
     life_screen_timer = 0;
+    JOY_setEventHandler(NULL);
 
-    SPR_setVisibility(player, HIDDEN);
+    ENEMY_init();
+    CANNON_init();
+    PLAYER_clear_sprite();
+    hud_life_icon_sprite = NULL;
     SPR_reset();
-
-    ENEMY_init(); 
 
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
-    
-    MAP_scrollTo(bga, 0, 0);
+
+    camera_x = 0;
+    VDP_setHorizontalScroll(BG_A, 0);
+    VDP_setHorizontalScroll(BG_B, 0);
+    VDP_setBackgroundColor(0);
 
     hud_life_icon_sprite = SPR_addSprite(&life, 112, 98, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
 
@@ -438,4 +414,39 @@ void GAME_show_life_screen()
     VDP_drawTextEx(BG_B, str, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 18, 13, DMA);
 
     SPR_update();
+}
+
+bool GAME_is_life_screen_active()
+{
+    return is_in_life_screen;
+}
+
+static void respawn_player()
+{
+    if (hud_life_icon_sprite != NULL)
+    {
+        SPR_setVisibility(hud_life_icon_sprite, HIDDEN);
+    }
+
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_clearPlane(BG_A, TRUE);
+    SPR_update();
+    SYS_doVBlankProcess();
+
+    hud_life_icon_sprite = NULL;
+    SPR_reset();
+
+    camera_x = 0;
+    PLAYER_reset_at_spawn();
+    game_time_seconds = HUD_TIMER;
+    game_frame_counter = 0;
+
+    MAP_scrollToEx(bga, camera_x, 0, TRUE);
+
+    PLAYER_init();
+    ENEMY_populate_from_map();
+    GAME_update_hud();
+
+    is_in_life_screen = FALSE;
+    JOY_setEventHandler(gameplay_handle_joy);
 }

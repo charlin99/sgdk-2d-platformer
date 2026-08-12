@@ -39,9 +39,12 @@ extern u16 camera_x;
 
 // --- Assinaturas das Funções ---
 void PLAYER_init();
+void PLAYER_reset_at_spawn();
+void PLAYER_clear_sprite();
 void PLAYER_handle_input();
 void PLAYER_update();
 void PLAYER_update_anim();
+void PLAYER_set_animation_paused(bool paused);
 void PLAYER_try_jump();
 void PLAYER_handle_joy(u16 changed, u16 state);
 void PLAYER_take_damage(s16 enemy_x);
