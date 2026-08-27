@@ -13,7 +13,8 @@ typedef struct {
 } CannonPoint;
 
 static const CannonPoint cannon_table[] = {
-    { 56, 120,  1 }
+    { 56, 120,  1 },
+    { 304, 192,  -1 }
 };
 #define CANNON_COUNT (sizeof(cannon_table) / sizeof(cannon_table[0]))
 

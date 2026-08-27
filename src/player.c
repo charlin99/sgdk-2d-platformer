@@ -53,7 +53,7 @@ bool is_hard_solid_at(u16 x, u16 y)
     if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN); 
+    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN && tile != TILE_INDEX_GRASS_1 && tile != TILE_INDEX_GRASS_2); 
 }
 
 bool is_platform_at(u16 x, u16 y)

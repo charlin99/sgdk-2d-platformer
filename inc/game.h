@@ -8,6 +8,8 @@
 
 typedef enum
 {
+    STATE_SPLASH,
+    STATE_CREDITS,
     STATE_TITLE,
     STATE_PLAYING,
     STATE_GAMEOVER

@@ -16,6 +16,7 @@ extern const SpriteDefinition slime;
 extern const SpriteDefinition cannonball_sprite;
 extern const SpriteDefinition life;
 extern const Image title_screen;
+extern const Image splash_screen_utfpr;
 extern const Image game_over_screen;
 
 #endif // _RES_RESOURCES_H_

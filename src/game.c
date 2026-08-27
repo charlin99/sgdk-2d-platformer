@@ -7,6 +7,14 @@
 
 #define PAUSE_TEXT_X 17
 #define PAUSE_TEXT_Y 14
+#define SPLASH_DISPLAY_FRAMES 120
+#define SPLASH_FADE_FRAMES 30
+#define SPLASH_X 4
+#define SPLASH_Y 2
+#define CREDITS_DISPLAY_FRAMES 150
+#define CREDITS_TEXT_X 8
+#define CREDITS_NAME_X 16
+#define CREDITS_TEXT_Y 12
 
 static GameState currentState;
 Map *bga;
@@ -22,11 +30,17 @@ u16 score = 0;
 static bool is_in_life_screen = FALSE;
 static u16 life_screen_timer = 0;
 static bool is_paused = FALSE;
+static u16 splash_timer = 0;
+static u16 credits_timer = 0;
 
 extern Enemy enemies[MAX_ENEMIES];
 
 static void title_init();
 static void title_update();
+static void splash_init();
+static void splash_update();
+static void credits_init();
+static void credits_update();
 static void gameplay_init();
 static void gameplay_update();
 static void gameplay_handle_joy(u16 joy, u16 changed, u16 state);
@@ -50,8 +64,8 @@ static void goToGameplay()
 static void title_init()
 {
     JOY_setEventHandler(NULL);
-    PAL_setPalette(PAL0, title_screen.palette->data, DMA);
     VDP_drawImageEx(BG_A, &title_screen, TILE_ATTR(PAL0, FALSE, FALSE, FALSE), 0, 0, FALSE, TRUE);
+    PAL_fadeIn(0, 15, title_screen.palette->data, SPLASH_FADE_FRAMES, FALSE);
 }
 
 static void title_update()
@@ -150,6 +164,57 @@ void gameplay_update()
 
 }
 
+static void splash_init()
+{
+    JOY_setEventHandler(NULL);
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_setBackgroundColor(0);
+    VDP_drawImageEx(BG_A, &splash_screen_utfpr, TILE_ATTR(PAL0, FALSE, FALSE, FALSE), SPLASH_X, SPLASH_Y, FALSE, TRUE);
+    PAL_fadeIn(0, 15, splash_screen_utfpr.palette->data, SPLASH_FADE_FRAMES, FALSE);
+    splash_timer = 0;
+}
+
+static void splash_update()
+{
+    splash_timer++;
+
+    if (splash_timer >= SPLASH_DISPLAY_FRAMES)
+    {
+        PAL_fadeOut(0, 15, SPLASH_FADE_FRAMES, FALSE);
+        VDP_clearPlane(BG_A, TRUE);
+        VDP_clearPlane(BG_B, TRUE);
+        currentState = STATE_CREDITS;
+        credits_init();
+    }
+}
+
+static void credits_init()
+{
+    JOY_setEventHandler(NULL);
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_setBackgroundColor(0);
+    PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
+    VDP_drawTextEx(BG_B, "UM JOGO DESENVOLVIDO POR", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), CREDITS_TEXT_X, CREDITS_TEXT_Y, DMA);
+    VDP_drawTextEx(BG_B, "CHARLIN99", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), CREDITS_NAME_X, CREDITS_TEXT_Y + 2, DMA);
+    credits_timer = 0;
+}
+
+static void credits_update()
+{
+    credits_timer++;
+
+    if (credits_timer >= CREDITS_DISPLAY_FRAMES)
+    {
+        PAL_fadeOut(0, 63, SPLASH_FADE_FRAMES, FALSE);
+        VDP_clearPlane(BG_A, TRUE);
+        VDP_clearPlane(BG_B, TRUE);
+        currentState = STATE_TITLE;
+        title_init();
+    }
+}
+
 void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
 {
     if (joy != JOY_1) return;
@@ -179,8 +244,8 @@ void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
 
 void GAME_start()
 {
-    currentState = STATE_TITLE;
-    title_init();
+    currentState = STATE_SPLASH;
+    splash_init();
 
     while(1)
     {
@@ -188,6 +253,14 @@ void GAME_start()
 
         switch (currentState)
         {
+            case STATE_SPLASH:
+                splash_update();
+                break;
+
+            case STATE_CREDITS:
+                credits_update();
+                break;
+
             case STATE_TITLE:
                 title_update();
                 break;

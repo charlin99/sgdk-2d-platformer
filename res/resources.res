@@ -8,6 +8,7 @@ SPRITE cannonball_sprite "cannonball_sprite.png" 1 1 FAST
 SPRITE life "life.png" 2 2 BEST
 
 IMAGE title_screen "titlescreen.png" BEST
+IMAGE splash_screen_utfpr "splash_screen_utfpr.png" BEST
 IMAGE game_over_screen "gameoverscreen.png" BEST
 
 WAV sfx_jump "sfx/jump.wav" XGM
