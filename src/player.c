@@ -4,8 +4,8 @@
 #include <game.h>
 
 Sprite *player;
-u16 player_x = 30;
-u16 player_y = 32;
+u16 player_x = 0;
+u16 player_y = 0;
 fix16 player_vy = FIX16(0);
 bool player_on_ground = FALSE;
 u8 player_jumps = 0;
@@ -16,15 +16,15 @@ u8 player_invincible_timer = 0;
 
 u8 player_lives = 3;
 u8 player_health = 2;
-u16 player_spawn_x = 30;
-u16 player_spawn_y = 32;
+u16 player_spawn_x = 0;
+u16 player_spawn_y = 0;
 
 static s8 knockback_direction = 0;
 
 // --- Funções do Jogador ---
 void PLAYER_init()
 {
-    player = SPR_addSprite(&player_sprite, player_x, player_y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
+    player = SPR_addSprite(&player_sprite, player_x - camera_x, player_y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
     player_current_anim = (u16) -1;
 }
 
@@ -43,6 +43,32 @@ void PLAYER_reset_at_spawn()
     knockback_direction = 0;
 }
 
+bool PLAYER_set_initial_spawn()
+{
+    const u16 count = sizeof(player_spawns) / sizeof(player_spawns[0]);
+    if (count != 1) return FALSE;
+
+    const PlayerSpawn *spawn = (const PlayerSpawn*)player_spawns[0];
+    // Spawns marks the player's top-left corner. Starting in the air is allowed.
+    if (spawn->x < 0 || spawn->y < 24 ||
+        (u32)spawn->x + PLAYER_WIDTH > (u32)level_map.w * 128 ||
+        (u32)spawn->y + PLAYER_HEIGHT > SCREEN_HEIGHT) return FALSE;
+
+    // Check every occupied tile, including hazards at the body's edges.
+    for (u16 y = spawn->y / 8; y <= (spawn->y + PLAYER_HEIGHT - 1) / 8; y++)
+    {
+        for (u16 x = spawn->x / 8; x <= (spawn->x + PLAYER_WIDTH - 1) / 8; x++)
+        {
+            if (is_hard_solid_at(x * 8, y * 8) || is_spike_at(x * 8, y * 8)) return FALSE;
+        }
+    }
+
+    player_spawn_x = spawn->x;
+    player_spawn_y = spawn->y;
+    PLAYER_reset_at_spawn();
+    return TRUE;
+}
+
 void PLAYER_clear_sprite()
 {
     player = NULL;
@@ -53,7 +79,7 @@ bool is_hard_solid_at(u16 x, u16 y)
     if (y < 24 || y >= 224) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN && tile != TILE_INDEX_GRASS_1 && tile != TILE_INDEX_GRASS_2); 
+    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN && tile != TILE_INDEX_CHECKPOINT_SPAWN && tile != TILE_INDEX_GRASS_1 && tile != TILE_INDEX_GRASS_2);
 }
 
 bool is_platform_at(u16 x, u16 y)

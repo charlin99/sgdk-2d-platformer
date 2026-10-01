@@ -4,6 +4,7 @@
 #include "resources.h"
 #include "resources_def.h"
 #include "cannon.h"
+#include "checkpoint.h"
 
 #define PAUSE_TEXT_X 17
 #define PAUSE_TEXT_Y 14
@@ -50,6 +51,7 @@ static void check_enemy_collisions();
 static void gameover_init();
 static void gameover_update();
 static void respawn_player();
+static void hud_init();
 
 static void goToGameplay()
 {
@@ -82,11 +84,26 @@ static void gameplay_init()
 {
     is_paused = FALSE;
     PAL_setPalette(PAL0, level_palette.data, DMA);
-    VDP_loadTileSet(&level_tileset, TILE_USER_INDEX, DMA);
+    // Load the exact tileset used to compile the TMX map (same tile order).
+    VDP_loadTileSet(&level_map_tileset0, TILE_USER_INDEX, CPU);
+    // Keep gameplay markers invisible without changing their map indices.
+    VDP_fillTileData(0, TILE_USER_INDEX + TILE_INDEX_ENEMY_SPAWN, 1, TRUE);
+    VDP_fillTileData(0, TILE_USER_INDEX + TILE_INDEX_CHECKPOINT_SPAWN, 1, TRUE);
 
     bga = MAP_create(&level_map, BG_A, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX));
 
-    MAP_scrollToEx(bga, 0, 0, TRUE);
+    if (!PLAYER_set_initial_spawn())
+    {
+        GAME_trigger_gameover();
+        PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
+        VDP_drawTextEx(BG_B, "SPAWN INVALIDO NO TILED", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 9, 22, DMA);
+        VDP_drawTextEx(BG_B, "START PARA REINICIAR", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 10, 24, DMA);
+        return;
+    }
+
+    camera_x = (player_spawn_x / SCREEN_WIDTH) * SCREEN_WIDTH;
+    if (camera_x > 960) camera_x = 960;
+    MAP_scrollToEx(bga, camera_x, 0, TRUE);
 
     PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
 
@@ -98,11 +115,13 @@ static void gameplay_init()
 
     PLAYER_init();
     CANNON_init();
+    CHECKPOINT_init();
 
     SYS_doVBlankProcess();
 
     ENEMY_populate_from_map();
 
+    hud_init();
     GAME_update_hud();
 
     JOY_setEventHandler(gameplay_handle_joy);
@@ -128,6 +147,8 @@ void gameplay_update()
     PLAYER_update();
 
     if (is_in_life_screen || currentState != STATE_PLAYING) return;
+
+    CHECKPOINT_update();
 
     PLAYER_update_anim();
 
@@ -330,6 +351,7 @@ static void check_room_transition()
 
             MAP_scrollTo(bga, camera_x, 0);
             SPR_setPosition(player, player_x - camera_x, player_y);
+            CHECKPOINT_update_sprites();
 
             for(int i = 0; i < MAX_ENEMIES; i++) {
                 if (enemies[i].active) {
@@ -402,6 +424,7 @@ static void check_enemy_collisions()
 void GAME_trigger_gameover()
 {
     JOY_setEventHandler(NULL);
+    VDP_setWindowOff();
 
     currentState = STATE_GAMEOVER;
 
@@ -444,6 +467,21 @@ static void gameover_update()
     }
 }
 
+static void hud_init()
+{
+    // Freeze the first screen's HUD artwork independently of the map scroll.
+    VDP_clearPlane(WINDOW, TRUE);
+    for (u16 y = 0; y < HUD_HEIGHT_TILES; y++)
+    {
+        for (u16 x = 0; x < SCREEN_WIDTH / 8; x++)
+        {
+            u16 tile = MAP_getTile(bga, x, y) + bga->baseTile;
+            VDP_setTileMapXY(WINDOW, tile | TILE_ATTR(PAL0, TRUE, FALSE, FALSE), x, y);
+        }
+    }
+    VDP_setWindowOnTop(HUD_HEIGHT_TILES);
+}
+
 void GAME_update_hud()
 {
     char tempo_texto[12];
@@ -452,8 +490,8 @@ void GAME_update_hud()
     sprintf(tempo_texto, "TIMER: %d ", game_time_seconds);
     sprintf(score_texto, "SCORE: %d", score);
 
-    VDP_drawTextEx(BG_B, score_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
-    VDP_drawTextEx(BG_B, tempo_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
+    VDP_drawTextEx(WINDOW, score_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
+    VDP_drawTextEx(WINDOW, tempo_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
 }
 
 void GAME_show_life_screen()
@@ -461,6 +499,7 @@ void GAME_show_life_screen()
     if (is_in_life_screen || currentState != STATE_PLAYING) return;
 
     is_in_life_screen = TRUE;
+    VDP_setWindowOff();
     is_paused = FALSE;
     life_screen_timer = 0;
     JOY_setEventHandler(NULL);
@@ -468,6 +507,7 @@ void GAME_show_life_screen()
     ENEMY_init();
     CANNON_init();
     PLAYER_clear_sprite();
+    CHECKPOINT_clear_sprites();
     hud_life_icon_sprite = NULL;
     SPR_reset();
 
@@ -509,7 +549,8 @@ static void respawn_player()
     hud_life_icon_sprite = NULL;
     SPR_reset();
 
-    camera_x = 0;
+    camera_x = (player_spawn_x / SCREEN_WIDTH) * SCREEN_WIDTH;
+    if (camera_x > 960) camera_x = 960;
     PLAYER_reset_at_spawn();
     game_time_seconds = HUD_TIMER;
     game_frame_counter = 0;
@@ -518,6 +559,9 @@ static void respawn_player()
 
     PLAYER_init();
     ENEMY_populate_from_map();
+    CANNON_init();
+    CHECKPOINT_update_sprites();
+    hud_init();
     GAME_update_hud();
 
     is_in_life_screen = FALSE;

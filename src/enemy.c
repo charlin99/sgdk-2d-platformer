@@ -1,10 +1,6 @@
 #include "game.h"
 #include "enemy.h"
 #include "resources.h"
-#include <resources_def.h>
-
-#define ENEMY_SPEED     1
-#define ENEMY_MOVE_DELAY 3
 
 extern u16 camera_x;
 
@@ -19,21 +15,29 @@ void ENEMY_init()
     }
 }
 
-void ENEMY_add(u16 x, u16 y)
+void ENEMY_add(const SlimeSpawn* spawn)
 {
+    s16 range = spawn->patrolRange > 0 ? spawn->patrolRange : 0;
+    s32 min_x = (s32)spawn->x - range;
+    s32 max_x = (s32)spawn->x + range;
+    s32 map_right = (s32)level_map.w * 128 - 16;
+
     for(int i = 0; i < MAX_ENEMIES; i++)
     {
         if (!enemies[i].active)
         {
-            enemies[i].x = x;
-            enemies[i].y = y;
-            enemies[i].min_x = x - 40; 
-            enemies[i].max_x = x + 40;
-            enemies[i].vel_x = ENEMY_SPEED;
-            enemies[i].active = TRUE;
-            enemies[i].move_timer = ENEMY_MOVE_DELAY;
+            enemies[i].x = spawn->x;
+            enemies[i].y = spawn->y;
+            enemies[i].min_x = min_x < 0 ? 0 : min_x;
+            enemies[i].max_x = max_x > map_right ? map_right : max_x;
+            enemies[i].speed = spawn->speed > 0 ? spawn->speed : 0;
+            enemies[i].vel_x = enemies[i].speed;
+            enemies[i].move_delay = spawn->moveDelay > 0 ? spawn->moveDelay : 1;
+            enemies[i].move_timer = enemies[i].move_delay;
 
-            enemies[i].sprite = SPR_addSprite(&slime, enemies[i].x, enemies[i].y, TILE_ATTR(PAL0, TRUE, FALSE, TRUE));
+            enemies[i].sprite = SPR_addSprite(&slime, enemies[i].x - camera_x, enemies[i].y, TILE_ATTR(PAL0, TRUE, FALSE, TRUE));
+            if (enemies[i].sprite == NULL) return;
+            enemies[i].active = TRUE;
             SPR_setAnim(enemies[i].sprite, 0);
             return;
         }
@@ -50,17 +54,22 @@ void ENEMY_update_all()
 
             if (enemies[i].move_timer <= 0)
             {
-                enemies[i].move_timer = ENEMY_MOVE_DELAY;
-                enemies[i].x += enemies[i].vel_x;
-            }
+                enemies[i].move_timer = enemies[i].move_delay;
+                s32 next_x = (s32)enemies[i].x + enemies[i].vel_x;
 
-            if (enemies[i].x <= enemies[i].min_x) {
-                enemies[i].vel_x = ENEMY_SPEED;
-                SPR_setHFlip(enemies[i].sprite, TRUE);
-            } 
-            else if (enemies[i].x >= enemies[i].max_x) {
-                enemies[i].vel_x = -ENEMY_SPEED;
-                SPR_setHFlip(enemies[i].sprite, FALSE);
+                if (next_x <= enemies[i].min_x) {
+                    enemies[i].x = enemies[i].min_x;
+                    enemies[i].vel_x = enemies[i].speed;
+                    SPR_setHFlip(enemies[i].sprite, TRUE);
+                }
+                else if (next_x >= enemies[i].max_x) {
+                    enemies[i].x = enemies[i].max_x;
+                    enemies[i].vel_x = -enemies[i].speed;
+                    SPR_setHFlip(enemies[i].sprite, FALSE);
+                }
+                else {
+                    enemies[i].x = next_x;
+                }
             }
 
             s16 screen_x = enemies[i].x - camera_x;
@@ -118,26 +127,13 @@ void ENEMY_populate_from_map()
     ENEMY_clear();
 
 
-    u16 map_width = level_map.w * 16;
-    u16 map_height = level_map.h * 16;
-
-    for (u16 ty = 0; ty < map_height; ty++)
+    const u16 count = sizeof(slime_spawns) / sizeof(slime_spawns[0]);
+    for (u16 i = 0; i < count; i++)
     {
-        for (u16 tx = 0; tx < map_width; tx++)
+        const SlimeSpawn* spawn = (const SlimeSpawn*)slime_spawns[i];
+        if (spawn->x >= camera_x && spawn->x < camera_x + SCREEN_WIDTH)
         {
-            u16 tile_attr = MAP_getTile(bga, tx, ty);
-            u16 tile = (tile_attr & TILE_INDEX_MASK);
-
-            if (tile == TILE_INDEX_ENEMY_SPAWN)
-            {
-                u16 pixel_x = (tx * 8) - 4;
-                u16 pixel_y = (ty * 8) - 8; 
-
-                if (pixel_x >= camera_x && pixel_x < camera_x + SCREEN_WIDTH)
-                {
-                    ENEMY_add(pixel_x, pixel_y);
-                }
-            }
+            ENEMY_add(spawn);
         }
     }
 }

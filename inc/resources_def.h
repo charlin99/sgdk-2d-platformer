@@ -26,8 +26,11 @@
 #define TILE_INDEX_GRASS_2 12
 
 #define TILE_INDEX_ENEMY_SPAWN 9
+// Compiled map tile 19 comes from Tiled GID 64 (local tile 63).
+#define TILE_INDEX_CHECKPOINT_SPAWN 19
 
 // Constantes de HUD
 #define HUD_TIMER 120
+#define HUD_HEIGHT_TILES 3
 
 #endif // _RESOURCES_DEF_H_

@@ -13,6 +13,13 @@
 #define MAX_FALL_SPEED      FIX16(6.0)
 #define PLAYER_JUMP_COUNT   2
 
+// Field order matches player_spawns in resources.res.
+typedef struct
+{
+    s16 x;
+    s16 y;
+} PlayerSpawn;
+
 // --- Constantes de Áudio ---
 #define SFX_JUMP_ID     64
 #define SFX_WALK_ID     65
@@ -40,6 +47,7 @@ extern u16 camera_x;
 // --- Assinaturas das Funções ---
 void PLAYER_init();
 void PLAYER_reset_at_spawn();
+bool PLAYER_set_initial_spawn();
 void PLAYER_clear_sprite();
 void PLAYER_handle_input();
 void PLAYER_update();
