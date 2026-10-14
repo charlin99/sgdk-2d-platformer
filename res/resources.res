@@ -1,4 +1,4 @@
-PALETTE level_palette "tileset.png"
+PALETTE game_palette "palette.png"
 TILESET level_tileset "tileset_invisible.png" BEST ALL
 MAP level_map "level_test2.tmx" LevelDesign BEST
 OBJECTS player_spawns "level_test2.tmx" Spawns "x:s16;y:s16"

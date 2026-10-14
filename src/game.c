@@ -67,7 +67,7 @@ static void title_init()
 {
     JOY_setEventHandler(NULL);
     VDP_drawImageEx(BG_A, &title_screen, TILE_ATTR(PAL0, FALSE, FALSE, FALSE), 0, 0, FALSE, TRUE);
-    PAL_fadeIn(0, 15, title_screen.palette->data, SPLASH_FADE_FRAMES, FALSE);
+    PAL_fadeIn(0, 15, game_palette.data, SPLASH_FADE_FRAMES, FALSE);
 }
 
 static void title_update()
@@ -83,7 +83,7 @@ static void title_update()
 static void gameplay_init()
 {
     is_paused = FALSE;
-    PAL_setPalette(PAL0, level_palette.data, DMA);
+    PAL_setPalette(PAL0, game_palette.data, DMA);
     // Load the exact tileset used to compile the TMX map (same tile order).
     VDP_loadTileSet(&level_map_tileset0, TILE_USER_INDEX, CPU);
     // Keep gameplay markers invisible without changing their map indices.
@@ -95,9 +95,8 @@ static void gameplay_init()
     if (!PLAYER_set_initial_spawn())
     {
         GAME_trigger_gameover();
-        PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
-        VDP_drawTextEx(BG_B, "SPAWN INVALIDO NO TILED", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 9, 22, DMA);
-        VDP_drawTextEx(BG_B, "START PARA REINICIAR", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 10, 24, DMA);
+        VDP_drawTextEx(BG_B, "SPAWN INVALIDO NO TILED", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 9, 22, DMA);
+        VDP_drawTextEx(BG_B, "START PARA REINICIAR", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 10, 24, DMA);
         return;
     }
 
@@ -105,9 +104,6 @@ static void gameplay_init()
     if (camera_x > 960) camera_x = 960;
     MAP_scrollToEx(bga, camera_x, 0, TRUE);
     VDP_setVerticalScrollVSync(BG_A, -LEVEL_SCREEN_Y);
-
-    PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
-
     
     XGM_setPCM(SFX_JUMP_ID, sfx_jump, sizeof(sfx_jump));
     XGM_setPCM(SFX_WALK_ID, sfx_walk, sizeof(sfx_walk));
@@ -193,7 +189,7 @@ static void splash_init()
     VDP_clearPlane(BG_B, TRUE);
     VDP_setBackgroundColor(0);
     VDP_drawImageEx(BG_A, &splash_screen_utfpr, TILE_ATTR(PAL0, FALSE, FALSE, FALSE), SPLASH_X, SPLASH_Y, FALSE, TRUE);
-    PAL_fadeIn(0, 15, splash_screen_utfpr.palette->data, SPLASH_FADE_FRAMES, FALSE);
+    PAL_fadeIn(0, 15, game_palette.data, SPLASH_FADE_FRAMES, FALSE);
     splash_timer = 0;
 }
 
@@ -217,9 +213,9 @@ static void credits_init()
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
     VDP_setBackgroundColor(0);
-    PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
-    VDP_drawTextEx(BG_B, "UM JOGO DESENVOLVIDO POR", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), CREDITS_TEXT_X, CREDITS_TEXT_Y, DMA);
-    VDP_drawTextEx(BG_B, "CHARLIN99", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), CREDITS_NAME_X, CREDITS_TEXT_Y + 2, DMA);
+    PAL_setPalette(PAL0, game_palette.data, DMA);
+    VDP_drawTextEx(BG_B, "UM JOGO DESENVOLVIDO POR", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), CREDITS_TEXT_X, CREDITS_TEXT_Y, DMA);
+    VDP_drawTextEx(BG_B, "CHARLIN99", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), CREDITS_NAME_X, CREDITS_TEXT_Y + 2, DMA);
     credits_timer = 0;
 }
 
@@ -229,7 +225,7 @@ static void credits_update()
 
     if (credits_timer >= CREDITS_DISPLAY_FRAMES)
     {
-        PAL_fadeOut(0, 63, SPLASH_FADE_FRAMES, FALSE);
+        PAL_fadeOut(0, 15, SPLASH_FADE_FRAMES, FALSE);
         VDP_clearPlane(BG_A, TRUE);
         VDP_clearPlane(BG_B, TRUE);
         currentState = STATE_TITLE;
@@ -249,11 +245,11 @@ void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
 
         if (is_paused)
         {
-            VDP_drawTextEx(BG_B, "PAUSE", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), PAUSE_TEXT_X, PAUSE_TEXT_Y, DMA);
+            VDP_drawTextEx(BG_B, "PAUSE", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), PAUSE_TEXT_X, PAUSE_TEXT_Y, DMA);
         }
         else
         {
-            VDP_drawTextEx(BG_B, "     ", TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), PAUSE_TEXT_X, PAUSE_TEXT_Y, DMA);
+            VDP_drawTextEx(BG_B, "     ", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), PAUSE_TEXT_X, PAUSE_TEXT_Y, DMA);
         }
         return;
     }
@@ -454,7 +450,7 @@ void GAME_trigger_gameover()
 
 static void gameover_init()
 {
-    PAL_setPalette(PAL0, game_over_screen.palette->data, DMA);
+    PAL_setPalette(PAL0, game_palette.data, DMA);
     
     VDP_drawImageEx(BG_A, &game_over_screen, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX), 0, 0, FALSE, TRUE);
 }
@@ -474,10 +470,7 @@ static void hud_init()
     // Allocate HUD tiles after the map, away from the sprite engine's VRAM area.
     u16 hud_tile_index = TILE_USER_INDEX + level_map_tileset0.numTile;
     VDP_clearPlane(WINDOW, TRUE);
-    // IMAGE palettes can contain 64 entries. Only load the HUD's 16-color bank
-    // so CRAM does not wrap around and overwrite the level and text palettes.
-    PAL_setPalette(PAL2, hud_image.palette->data, CPU);
-    VDP_drawImageEx(WINDOW, &hud_image, TILE_ATTR_FULL(PAL2, TRUE, FALSE, FALSE, hud_tile_index), 0, 0, FALSE, TRUE);
+    VDP_drawImageEx(WINDOW, &hud_image, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, hud_tile_index), 0, 0, FALSE, TRUE);
     VDP_setWindowOnTop(HUD_HEIGHT_TILES);
 }
 
@@ -490,8 +483,8 @@ void GAME_update_hud()
     sprintf(tempo_texto, "TIMER: %3d", game_time_seconds);
     sprintf(score_texto, "SCORE: %d", score);
 
-    VDP_drawTextEx(WINDOW, score_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
-    VDP_drawTextEx(WINDOW, tempo_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
+    VDP_drawTextEx(WINDOW, score_texto, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
+    VDP_drawTextEx(WINDOW, tempo_texto, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
 }
 
 void GAME_show_life_screen()
@@ -525,7 +518,7 @@ void GAME_show_life_screen()
     char str[16];
     
     sprintf(str, "X  %d", player_lives);
-    VDP_drawTextEx(BG_B, str, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 18, 13, DMA);
+    VDP_drawTextEx(BG_B, str, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 18, 13, DMA);
 
     SPR_update();
 }
