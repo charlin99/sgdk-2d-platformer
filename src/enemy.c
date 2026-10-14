@@ -35,7 +35,7 @@ void ENEMY_add(const SlimeSpawn* spawn)
             enemies[i].move_delay = spawn->moveDelay > 0 ? spawn->moveDelay : 1;
             enemies[i].move_timer = enemies[i].move_delay;
 
-            enemies[i].sprite = SPR_addSprite(&slime, enemies[i].x - camera_x, enemies[i].y, TILE_ATTR(PAL0, TRUE, FALSE, TRUE));
+            enemies[i].sprite = SPR_addSprite(&slime, enemies[i].x - camera_x, enemies[i].y + LEVEL_SCREEN_Y, TILE_ATTR(PAL0, TRUE, FALSE, TRUE));
             if (enemies[i].sprite == NULL) return;
             enemies[i].active = TRUE;
             SPR_setAnim(enemies[i].sprite, 0);
@@ -78,7 +78,7 @@ void ENEMY_update_all()
                 SPR_setVisibility(enemies[i].sprite, HIDDEN);
             } else {
                 SPR_setVisibility(enemies[i].sprite, VISIBLE);
-                SPR_setPosition(enemies[i].sprite, screen_x, enemies[i].y);
+                SPR_setPosition(enemies[i].sprite, screen_x, enemies[i].y + LEVEL_SCREEN_Y);
             }
         }
     }

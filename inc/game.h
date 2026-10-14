@@ -2,9 +2,12 @@
 #define _GAME_H_
 
 #include <genesis.h>
+#include "resources_def.h"
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 224
+#define LEVEL_SCREEN_Y (HUD_HEIGHT_TILES * 8)
+#define LEVEL_VIEW_HEIGHT (SCREEN_HEIGHT - LEVEL_SCREEN_Y)
 
 typedef enum
 {

@@ -24,5 +24,6 @@ extern const SpriteDefinition checkpoint_pole;
 extern const Image title_screen;
 extern const Image splash_screen_utfpr;
 extern const Image game_over_screen;
+extern const Image hud_image;
 
 #endif // _RES_RESOURCES_H_

@@ -16,6 +16,7 @@ SPRITE checkpoint_pole "checkpoint_pole.png" 2 2 FAST
 IMAGE title_screen "titlescreen.png" BEST
 IMAGE splash_screen_utfpr "splash_screen_utfpr.png" BEST
 IMAGE game_over_screen "gameoverscreen.png" BEST
+IMAGE hud_image "hud.png" BEST
 
 WAV sfx_jump "sfx/jump.wav" XGM
 WAV sfx_walk "sfx/walk.wav" XGM

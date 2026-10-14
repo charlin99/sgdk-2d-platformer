@@ -56,7 +56,7 @@ static void spawn_bullet(const CannonSpawn *cannon)
         if (!bullets[i].active)
         {
             bullets[i].sprite = SPR_addSprite(&cannonball_sprite,
-                                             cannon->x - camera_x, cannon->y,
+                                             cannon->x - camera_x, cannon->y + LEVEL_SCREEN_Y,
                                              TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
             if (bullets[i].sprite == NULL) return;
 
@@ -99,7 +99,7 @@ void CANNON_update()
         bullets[i].y = bullets[i].position_y >> FIX16_FRAC_BITS;
 
         if (bullets[i].x + BULLET_SIZE <= camera_x || bullets[i].x >= camera_x + SCREEN_WIDTH ||
-            bullets[i].y + BULLET_SIZE <= 0 || bullets[i].y >= SCREEN_HEIGHT)
+            bullets[i].y + BULLET_SIZE <= 0 || bullets[i].y >= LEVEL_VIEW_HEIGHT)
         {
             release_bullet(i);
             continue;
@@ -126,6 +126,6 @@ void CANNON_update()
             continue;
         }
 
-        SPR_setPosition(bullets[i].sprite, bullets[i].x - camera_x, bullets[i].y);
+        SPR_setPosition(bullets[i].sprite, bullets[i].x - camera_x, bullets[i].y + LEVEL_SCREEN_Y);
     }
 }

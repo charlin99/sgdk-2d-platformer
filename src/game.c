@@ -104,6 +104,7 @@ static void gameplay_init()
     camera_x = (player_spawn_x / SCREEN_WIDTH) * SCREEN_WIDTH;
     if (camera_x > 960) camera_x = 960;
     MAP_scrollToEx(bga, camera_x, 0, TRUE);
+    VDP_setVerticalScrollVSync(BG_A, -LEVEL_SCREEN_Y);
 
     PAL_setColor(31, RGB24_TO_VDPCOLOR(0xFFFFFF));
 
@@ -350,12 +351,13 @@ static void check_room_transition()
             }
 
             MAP_scrollTo(bga, camera_x, 0);
-            SPR_setPosition(player, player_x - camera_x, player_y);
+            VDP_setVerticalScrollVSync(BG_A, -LEVEL_SCREEN_Y);
+            SPR_setPosition(player, player_x - camera_x, player_y + LEVEL_SCREEN_Y);
             CHECKPOINT_update_sprites();
 
             for(int i = 0; i < MAX_ENEMIES; i++) {
                 if (enemies[i].active) {
-                    SPR_setPosition(enemies[i].sprite, enemies[i].x - camera_x, enemies[i].y);
+                    SPR_setPosition(enemies[i].sprite, enemies[i].x - camera_x, enemies[i].y + LEVEL_SCREEN_Y);
                 }
             }
 
@@ -469,16 +471,13 @@ static void gameover_update()
 
 static void hud_init()
 {
-    // Freeze the first screen's HUD artwork independently of the map scroll.
+    // Allocate HUD tiles after the map, away from the sprite engine's VRAM area.
+    u16 hud_tile_index = TILE_USER_INDEX + level_map_tileset0.numTile;
     VDP_clearPlane(WINDOW, TRUE);
-    for (u16 y = 0; y < HUD_HEIGHT_TILES; y++)
-    {
-        for (u16 x = 0; x < SCREEN_WIDTH / 8; x++)
-        {
-            u16 tile = MAP_getTile(bga, x, y) + bga->baseTile;
-            VDP_setTileMapXY(WINDOW, tile | TILE_ATTR(PAL0, TRUE, FALSE, FALSE), x, y);
-        }
-    }
+    // IMAGE palettes can contain 64 entries. Only load the HUD's 16-color bank
+    // so CRAM does not wrap around and overwrite the level and text palettes.
+    PAL_setPalette(PAL2, hud_image.palette->data, CPU);
+    VDP_drawImageEx(WINDOW, &hud_image, TILE_ATTR_FULL(PAL2, TRUE, FALSE, FALSE, hud_tile_index), 0, 0, FALSE, TRUE);
     VDP_setWindowOnTop(HUD_HEIGHT_TILES);
 }
 
@@ -487,7 +486,8 @@ void GAME_update_hud()
     char tempo_texto[12];
     char score_texto[16];
 
-    sprintf(tempo_texto, "TIMER: %d ", game_time_seconds);
+    // Ten tiles (columns 29..38), leaving the HUD's right border at 39 intact.
+    sprintf(tempo_texto, "TIMER: %3d", game_time_seconds);
     sprintf(score_texto, "SCORE: %d", score);
 
     VDP_drawTextEx(WINDOW, score_texto, TILE_ATTR_FULL(PAL1, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
@@ -518,6 +518,7 @@ void GAME_show_life_screen()
     VDP_setHorizontalScroll(BG_A, 0);
     VDP_setHorizontalScroll(BG_B, 0);
     VDP_setBackgroundColor(0);
+    VDP_setVerticalScrollVSync(BG_A, 0);
 
     hud_life_icon_sprite = SPR_addSprite(&life, 112, 98, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
 
@@ -556,6 +557,7 @@ static void respawn_player()
     game_frame_counter = 0;
 
     MAP_scrollToEx(bga, camera_x, 0, TRUE);
+    VDP_setVerticalScrollVSync(BG_A, -LEVEL_SCREEN_Y);
 
     PLAYER_init();
     ENEMY_populate_from_map();

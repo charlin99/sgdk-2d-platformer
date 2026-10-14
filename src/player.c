@@ -24,7 +24,7 @@ static s8 knockback_direction = 0;
 // --- Funções do Jogador ---
 void PLAYER_init()
 {
-    player = SPR_addSprite(&player_sprite, player_x - camera_x, player_y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
+    player = SPR_addSprite(&player_sprite, player_x - camera_x, player_y + LEVEL_SCREEN_Y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
     player_current_anim = (u16) -1;
 }
 
@@ -50,9 +50,9 @@ bool PLAYER_set_initial_spawn()
 
     const PlayerSpawn *spawn = (const PlayerSpawn*)player_spawns[0];
     // Spawns marks the player's top-left corner. Starting in the air is allowed.
-    if (spawn->x < 0 || spawn->y < 24 ||
+    if (spawn->x < 0 || spawn->y < 0 ||
         (u32)spawn->x + PLAYER_WIDTH > (u32)level_map.w * 128 ||
-        (u32)spawn->y + PLAYER_HEIGHT > SCREEN_HEIGHT) return FALSE;
+        (u32)spawn->y + PLAYER_HEIGHT > LEVEL_VIEW_HEIGHT) return FALSE;
 
     // Check every occupied tile, including hazards at the body's edges.
     for (u16 y = spawn->y / 8; y <= (spawn->y + PLAYER_HEIGHT - 1) / 8; y++)
@@ -76,7 +76,7 @@ void PLAYER_clear_sprite()
 
 bool is_hard_solid_at(u16 x, u16 y)
 {
-    if (y < 24 || y >= 224) return FALSE;
+    if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN && tile != TILE_INDEX_CHECKPOINT_SPAWN && tile != TILE_INDEX_GRASS_1 && tile != TILE_INDEX_GRASS_2);
@@ -84,7 +84,7 @@ bool is_hard_solid_at(u16 x, u16 y)
 
 bool is_platform_at(u16 x, u16 y)
 {
-    if (y < 24 || y >= 224) return FALSE;
+    if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_PLATFORM);
@@ -92,7 +92,7 @@ bool is_platform_at(u16 x, u16 y)
 
 bool is_spike_at(u16 x, u16 y)
 {
-    if (y < 24 || y >= 224) return FALSE;
+    if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
 
@@ -103,7 +103,7 @@ bool is_spike_at(u16 x, u16 y)
 
 bool is_spike_floor_at(u16 x, u16 y)
 {
-    if (y < 24 || y >= 224) return FALSE;
+    if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE_FLOOR);
@@ -111,7 +111,7 @@ bool is_spike_floor_at(u16 x, u16 y)
 
 bool is_spike_wall_at(u16 x, u16 y)
 {
-    if (y < 24 || y >= 224) return FALSE;
+    if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE_WALL);
@@ -119,7 +119,7 @@ bool is_spike_wall_at(u16 x, u16 y)
 
 bool is_spike_ceiling_at(u16 x, u16 y)
 {
-    if (y < 24 || y >= 224) return FALSE;
+    if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
     return (tile == TILE_INDEX_SPIKE_CEILING);
@@ -249,6 +249,11 @@ void PLAYER_update()
         s16 abs_move_y = -move_y;
         for (int i = 0; i < abs_move_y; i++)
         {
+            if (player_y == 0)
+            {
+                player_vy = FIX16(0);
+                break;
+            }
             player_y--;
             u16 head_y = player_y;
             
@@ -262,12 +267,6 @@ void PLAYER_update()
                 break;
             }
         }
-    }
-
-    if (player_y < 24)
-    {
-        player_y = 24;
-        player_vy = FIX16(0);
     }
 
     // --- PASSO 3: VERIFICAÇÃO DE ESTADO ON_GROUND ---
@@ -399,7 +398,7 @@ void PLAYER_update()
         SPR_setVisibility(player, VISIBLE);
     }
     
-    if (player_y > SCREEN_HEIGHT + 16)
+    if (player_y > LEVEL_VIEW_HEIGHT + 16)
     {
         player_health = 1;
         PLAYER_die();
@@ -407,7 +406,7 @@ void PLAYER_update()
     }
 
     // --- PASSO 4: ATUALIZAR O SPRITE NA TELA (Respeitando o sistema de salas) ---
-    SPR_setPosition(player, player_x - camera_x, player_y);
+    SPR_setPosition(player, player_x - camera_x, player_y + LEVEL_SCREEN_Y);
 }
 
 void PLAYER_try_jump()

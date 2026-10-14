@@ -32,7 +32,7 @@ static void create_checkpoint_sprite(u8 index)
     Checkpoint *checkpoint = &checkpoints[index];
     const SpriteDefinition *definition = checkpoint->collected ? &checkpoint_pole : &checkpoint_flag;
     s16 screen_x = checkpoint->x - 8 - camera_x;
-    s16 screen_y = checkpoint->floor_y - PLAYER_HEIGHT;
+    s16 screen_y = checkpoint->floor_y - PLAYER_HEIGHT + LEVEL_SCREEN_Y;
 
     checkpoint->sprite = SPR_addSprite(definition, screen_x, screen_y, TILE_ATTR(PAL0, TRUE, FALSE, FALSE));
 }
@@ -91,7 +91,7 @@ void CHECKPOINT_update_sprites()
         }
         else
         {
-            SPR_setPosition(checkpoint->sprite, checkpoint->x - 8 - camera_x, checkpoint->floor_y - PLAYER_HEIGHT);
+            SPR_setPosition(checkpoint->sprite, checkpoint->x - 8 - camera_x, checkpoint->floor_y - PLAYER_HEIGHT + LEVEL_SCREEN_Y);
         }
     }
 }
@@ -108,7 +108,7 @@ void CHECKPOINT_clear_sprites()
 static bool spawn_position_is_safe(u16 spawn_x, u16 spawn_y)
 {
     if ((u32)spawn_x + PLAYER_WIDTH > (u32)level_map.w * 128 ||
-        (u32)spawn_y + PLAYER_HEIGHT >= SCREEN_HEIGHT) return FALSE;
+        (u32)spawn_y + PLAYER_HEIGHT >= LEVEL_VIEW_HEIGHT) return FALSE;
     u16 x_left = spawn_x + 2;
     u16 x_center = spawn_x + (PLAYER_WIDTH / 2);
     u16 x_right = spawn_x + PLAYER_WIDTH - 2;
