@@ -1,3 +1,4 @@
+#include "stage.h"
 #include "game.h"
 #include "enemy.h"
 #include "resources.h"
@@ -20,7 +21,7 @@ void ENEMY_add(const SlimeSpawn* spawn)
     s16 range = spawn->patrolRange > 0 ? spawn->patrolRange : 0;
     s32 min_x = (s32)spawn->x - range;
     s32 max_x = (s32)spawn->x + range;
-    s32 map_right = (s32)level_map.w * 128 - 16;
+    s32 map_right = (s32)current_stage->width - 16;
 
     for(int i = 0; i < MAX_ENEMIES; i++)
     {
@@ -127,10 +128,10 @@ void ENEMY_populate_from_map()
     ENEMY_clear();
 
 
-    const u16 count = sizeof(slime_spawns) / sizeof(slime_spawns[0]);
+    const u16 count = current_stage->slime_count;
     for (u16 i = 0; i < count; i++)
     {
-        const SlimeSpawn* spawn = (const SlimeSpawn*)slime_spawns[i];
+        const SlimeSpawn* spawn = (const SlimeSpawn*)current_stage->slimes[i];
         if (spawn->x >= camera_x && spawn->x < camera_x + SCREEN_WIDTH)
         {
             ENEMY_add(spawn);

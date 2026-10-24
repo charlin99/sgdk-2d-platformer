@@ -17,16 +17,17 @@
 #define SFX_HURT_ID     66
 #define SFX_CANNON_ID   67
 
-// Constantes de tile
+// IDs do tileset otimizado pelo rescomp (nao sao os GIDs do Tiled).
+// Ao editar tileset.png, confira a deduplicacao, inclusive de tiles espelhados.
 #define TILE_INDEX_PLATFORM 2
 #define TILE_INDEX_SPIKE_FLOOR 3
 #define TILE_INDEX_SPIKE_CEILING 4
 #define TILE_INDEX_SPIKE_WALL 5
-#define TILE_INDEX_GRASS_1 11
-#define TILE_INDEX_GRASS_2 12
+#define TILE_INDEX_GRASS_1 12
+#define TILE_INDEX_GRASS_2 13
 
-#define TILE_INDEX_ENEMY_SPAWN 9
-#define TILE_INDEX_CHECKPOINT_SPAWN 19
+// Tile 63 no Tiled; o ID antigo 19 agora pertence a um bloco do cenario.
+#define TILE_INDEX_CHECKPOINT_SPAWN 24
 
 // Constantes de HUD
 #define HUD_TIMER 120

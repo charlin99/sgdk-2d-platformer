@@ -1,3 +1,4 @@
+#include "stage.h"
 #include "game.h"
 #include "player.h"
 #include "enemy.h"
@@ -16,6 +17,7 @@
 #define CREDITS_TEXT_X 8
 #define CREDITS_NAME_X 16
 #define CREDITS_TEXT_Y 12
+#define STAGE_MESSAGE_SECONDS 2
 
 static GameState currentState;
 Map *bga;
@@ -52,6 +54,117 @@ static void gameover_init();
 static void gameover_update();
 static void respawn_player();
 static void hud_init();
+static u16 pending_stage = 0;
+static u16 rejected_exit = 0;
+// Reset invalidates all sprite pointers together; only bullets release individually.
+static void clear_stage_sprites()
+{
+    CANNON_clear();
+    ENEMY_init();
+    PLAYER_clear_sprite();
+    CHECKPOINT_clear_sprites();
+    hud_life_icon_sprite = NULL;
+    SPR_reset();
+}
+static void load_stage(u16 id, bool reveal)
+{
+    const StageDefinition *destination = STAGE_find(id);
+    if (destination == NULL || destination->cannon_count > STAGE_MAX_CANNONS) return;
+    JOY_setEventHandler(NULL);
+    VDP_setWindowOff();
+    VDP_setEnable(FALSE);
+    clear_stage_sprites();
+    if (bga != NULL) { MAP_release(bga); bga = NULL; }
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_setHorizontalScroll(BG_B, 0);
+    VDP_setVerticalScroll(BG_B, 0);
+    current_stage = destination;
+    pending_stage = 0;
+    rejected_exit = 0;
+    gameplay_init();
+    if (currentState != STATE_GAMEOVER)
+    {
+        SPR_update();
+        if (!reveal) PAL_setPalette(PAL0, palette_black, CPU);
+    }
+    SYS_doVBlankProcess();
+    VDP_setEnable(TRUE);
+}
+
+static void hold_stage_message(u16 frames)
+{
+    // No gameplay or SPR_update here: physics, timer and sprite animations freeze.
+    while (frames--) SYS_doVBlankProcess();
+}
+
+static void transition_stage()
+{
+    const u16 destination = pending_stage;
+    const u16 frames_per_second = SYS_isPAL() ? 50 : 60;
+    const u16 fade_frames = frames_per_second / 2;
+    char level_text[16];
+
+    currentState = STATE_STAGE_TRANSITION;
+    JOY_setEventHandler(NULL);
+    XGM_stopPlayPCM(SOUND_PCM_CH2);
+    XGM_stopPlayPCM(SOUND_PCM_CH3);
+
+    // Commit the last gameplay frame once, then keep even sprite animations still.
+    SPR_update();
+    if (destination > current_stage->id)
+    {
+        // BG_B has no camera scroll; priority keeps the text above the map.
+        VDP_drawTextEx(BG_B, "LEVEL CLEAR!", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 14, 13, DMA);
+        hold_stage_message(frames_per_second * STAGE_MESSAGE_SECONDS);
+    }
+    PAL_fadeOut(0, 15, fade_frames, FALSE);
+
+    // Remove the old scene while black, then show only the destination card.
+    VDP_setEnable(FALSE);
+    VDP_setWindowOff();
+    clear_stage_sprites();
+    VDP_clearPlane(BG_A, TRUE);
+    VDP_clearPlane(BG_B, TRUE);
+    VDP_setHorizontalScroll(BG_A, 0);
+    VDP_setVerticalScroll(BG_A, 0);
+    VDP_setHorizontalScroll(BG_B, 0);
+    VDP_setVerticalScroll(BG_B, 0);
+    VDP_setBackgroundColor(0);
+    // Dedicated white text on black, independent of gameplay palette colors.
+    PAL_setPalette(PAL0, palette_black, CPU);
+    PAL_setColor(15, RGB24_TO_VDPCOLOR(0xFFFFFF));
+    sprintf(level_text, "LEVEL %d", destination);
+    VDP_drawTextEx(BG_B, level_text, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), (40 - strlen(level_text)) / 2, 12, DMA);
+    VDP_drawTextEx(BG_B, "START!", TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 17, 14, DMA);
+    SYS_doVBlankProcess();
+    VDP_setEnable(TRUE);
+    hold_stage_message(frames_per_second * STAGE_MESSAGE_SECONDS);
+
+    // Prepare the destination behind black; no bright frame before the fade-in.
+    load_stage(destination, FALSE);
+    if (currentState == STATE_GAMEOVER) return;
+    PAL_fadeIn(0, 15, game_palette.data, fade_frames, FALSE);
+    // Consume transition button edges before restoring the gameplay handler.
+    JOY_setEventHandler(NULL);
+    JOY_update();
+    currentState = STATE_PLAYING;
+    JOY_setEventHandler(gameplay_handle_joy);
+}
+static void check_stage_exit()
+{
+    u16 index = STAGE_exit_at(player_x, player_y, PLAYER_WIDTH, PLAYER_HEIGHT);
+    if (!index) { rejected_exit = 0; return; }
+    if (index == rejected_exit || pending_stage) return;
+    const StageExit *exit = current_stage->exits[index - 1];
+    const StageDefinition *destination = STAGE_find(exit->nextStage);
+    if (destination == NULL || destination == current_stage || destination->cannon_count > STAGE_MAX_CANNONS) {
+        rejected_exit = index;
+        KLog("Stage exit rejected: invalid destination");
+        return;
+    }
+    pending_stage = destination->id;
+}
 
 static void goToGameplay()
 {
@@ -60,7 +173,7 @@ static void goToGameplay()
     VDP_clearPlane(BG_B, TRUE);
 
     currentState = STATE_PLAYING;
-    gameplay_init();
+    load_stage(STAGE_INITIAL_ID, TRUE);
 }
 
 static void title_init()
@@ -83,14 +196,18 @@ static void title_update()
 static void gameplay_init()
 {
     is_paused = FALSE;
+    is_in_life_screen = FALSE;
+    life_screen_timer = 0;
+    game_time_seconds = HUD_TIMER;
+    game_frame_counter = 0;
     PAL_setPalette(PAL0, game_palette.data, DMA);
     // Load the exact tileset used to compile the TMX map (same tile order).
-    VDP_loadTileSet(&level_map_tileset0, TILE_USER_INDEX, CPU);
-    // Keep gameplay markers invisible without changing their map indices.
-    VDP_fillTileData(0, TILE_USER_INDEX + TILE_INDEX_ENEMY_SPAWN, 1, TRUE);
+    VDP_loadTileSet(current_stage->tileset, TILE_USER_INDEX, CPU);
+    // Only the checkpoint tile is a marker; enemies use TMX objects.
+    // Tile 9 is terrain and must keep both its graphics and collision.
     VDP_fillTileData(0, TILE_USER_INDEX + TILE_INDEX_CHECKPOINT_SPAWN, 1, TRUE);
 
-    bga = MAP_create(&level_map, BG_A, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX));
+    bga = MAP_create(current_stage->map, BG_A, TILE_ATTR_FULL(PAL0, FALSE, FALSE, FALSE, TILE_USER_INDEX));
 
     if (!PLAYER_set_initial_spawn())
     {
@@ -100,8 +217,7 @@ static void gameplay_init()
         return;
     }
 
-    camera_x = (player_spawn_x / SCREEN_WIDTH) * SCREEN_WIDTH;
-    if (camera_x > 960) camera_x = 960;
+    camera_x = STAGE_camera_at(player_spawn_x);
     MAP_scrollToEx(bga, camera_x, 0, TRUE);
     VDP_setVerticalScrollVSync(BG_A, -LEVEL_SCREEN_Y);
     
@@ -180,6 +296,7 @@ void gameplay_update()
         }
     }
 
+    check_stage_exit();
 }
 
 static void splash_init()
@@ -235,7 +352,7 @@ static void credits_update()
 
 void gameplay_handle_joy(u16 joy, u16 changed, u16 state)
 {
-    if (joy != JOY_1) return;
+    if (joy != JOY_1 || currentState != STATE_PLAYING || is_in_life_screen || pending_stage) return;
 
     if (changed & state & BUTTON_START)
     {
@@ -285,6 +402,7 @@ void GAME_start()
 
             case STATE_PLAYING:
                 gameplay_update();
+                if (pending_stage && currentState == STATE_PLAYING && !is_in_life_screen) transition_stage();
                 break;
 
             case STATE_GAMEOVER:
@@ -314,36 +432,31 @@ static void check_room_transition()
 
     if (player_x >= camera_x + SCREEN_WIDTH)
     {
-        if (camera_x < 960)
+        if (camera_x < STAGE_camera_limit())
         {
-            target_x = camera_x + SCREEN_WIDTH;
+            target_x = STAGE_camera_at(camera_x + SCREEN_WIDTH);
             transitioning = TRUE;
         }
     }
     else if (player_x < camera_x)
     {
-        if (camera_x >= SCREEN_WIDTH)
+        if (camera_x > 0)
         {
-            target_x = camera_x - SCREEN_WIDTH;
+            target_x = ((camera_x - 1) / SCREEN_WIDTH) * SCREEN_WIDTH;
             transitioning = TRUE;
         }
     }
 
     if (transitioning)
     {
-        if (camera_x < target_x) 
-            player_x = target_x;
-        else 
-            player_x = target_x + SCREEN_WIDTH - 16;
-
         while (camera_x != target_x)
         {
             if (currentState != STATE_PLAYING) break;
 
             if (camera_x < target_x) {
-                camera_x += 10;
+                camera_x += target_x - camera_x < 10 ? target_x - camera_x : 10;
             } else {
-                camera_x -= 10;
+                camera_x -= camera_x - target_x < 10 ? camera_x - target_x : 10;
             }
 
             MAP_scrollTo(bga, camera_x, 0);
@@ -441,6 +554,8 @@ void GAME_trigger_gameover()
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
 
+    clear_stage_sprites();
+    pending_stage = 0;
     SPR_end(); 
 
     VDP_clearTextArea(0, 0, 64, 32);
@@ -468,7 +583,7 @@ static void gameover_update()
 static void hud_init()
 {
     // Allocate HUD tiles after the map, away from the sprite engine's VRAM area.
-    u16 hud_tile_index = TILE_USER_INDEX + level_map_tileset0.numTile;
+    u16 hud_tile_index = TILE_USER_INDEX + current_stage->tileset->numTile;
     VDP_clearPlane(WINDOW, TRUE);
     VDP_drawImageEx(WINDOW, &hud_image, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, hud_tile_index), 0, 0, FALSE, TRUE);
     VDP_setWindowOnTop(HUD_HEIGHT_TILES);
@@ -478,12 +593,15 @@ void GAME_update_hud()
 {
     char tempo_texto[12];
     char score_texto[16];
+    char stage_text[12];
 
     // Ten tiles (columns 29..38), leaving the HUD's right border at 39 intact.
     sprintf(tempo_texto, "TIMER: %3d", game_time_seconds);
     sprintf(score_texto, "SCORE: %d", score);
+    sprintf(stage_text, "FASE: %d", current_stage->id);
 
     VDP_drawTextEx(WINDOW, score_texto, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 1, 1, DMA);
+    VDP_drawTextEx(WINDOW, stage_text, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 18, 1, DMA);
     VDP_drawTextEx(WINDOW, tempo_texto, TILE_ATTR_FULL(PAL0, TRUE, FALSE, FALSE, TILE_SYSTEM_INDEX), 29, 1, DMA);
 }
 
@@ -497,12 +615,7 @@ void GAME_show_life_screen()
     life_screen_timer = 0;
     JOY_setEventHandler(NULL);
 
-    ENEMY_init();
-    CANNON_init();
-    PLAYER_clear_sprite();
-    CHECKPOINT_clear_sprites();
-    hud_life_icon_sprite = NULL;
-    SPR_reset();
+    clear_stage_sprites();
 
     VDP_clearPlane(BG_A, TRUE);
     VDP_clearPlane(BG_B, TRUE);
@@ -543,8 +656,7 @@ static void respawn_player()
     hud_life_icon_sprite = NULL;
     SPR_reset();
 
-    camera_x = (player_spawn_x / SCREEN_WIDTH) * SCREEN_WIDTH;
-    if (camera_x > 960) camera_x = 960;
+    camera_x = STAGE_camera_at(player_spawn_x);
     PLAYER_reset_at_spawn();
     game_time_seconds = HUD_TIMER;
     game_frame_counter = 0;

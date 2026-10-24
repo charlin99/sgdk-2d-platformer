@@ -1,3 +1,4 @@
+#include "stage.h"
 #include "cannon.h"
 #include "player.h"
 #include "game.h"
@@ -6,10 +7,10 @@
 
 #define MAX_BULLETS 16
 #define BULLET_SIZE 8
-#define CANNON_COUNT (sizeof(cannon_spawns) / sizeof(cannon_spawns[0]))
+#define CANNON_COUNT (current_stage->cannon_count)
 
 static Bullet bullets[MAX_BULLETS];
-static u16 fire_timers[CANNON_COUNT];
+static u16 fire_timers[STAGE_MAX_CANNONS];
 
 // Clockwise, starting at right. Screen Y grows downwards.
 static const s8 direction_x[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
@@ -25,17 +26,19 @@ static void release_bullet(u16 index)
     bullets[index].active = FALSE;
 }
 
+void CANNON_clear()
+{
+    for (u16 i = 0; i < MAX_BULLETS; i++) release_bullet(i);
+}
+
 void CANNON_init()
 {
     for (u16 i = 0; i < CANNON_COUNT; i++)
     {
-        const CannonSpawn *cannon = (const CannonSpawn*)cannon_spawns[i];
+        const CannonSpawn *cannon = (const CannonSpawn*)current_stage->cannons[i];
         fire_timers[i] = cannon->initialDelay;
     }
-    for (u16 i = 0; i < MAX_BULLETS; i++)
-    {
-        release_bullet(i);
-    }
+    CANNON_clear();
 }
 
 static void spawn_bullet(const CannonSpawn *cannon)
@@ -78,7 +81,7 @@ void CANNON_update()
 {
     for (u16 i = 0; i < CANNON_COUNT; i++)
     {
-        const CannonSpawn *cannon = (const CannonSpawn*)cannon_spawns[i];
+        const CannonSpawn *cannon = (const CannonSpawn*)current_stage->cannons[i];
         if (cannon->x < camera_x || cannon->x >= camera_x + SCREEN_WIDTH) continue;
 
         if (fire_timers[i] > 0) fire_timers[i]--;

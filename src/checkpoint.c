@@ -1,3 +1,4 @@
+#include "stage.h"
 #include <genesis.h>
 #include "checkpoint.h"
 #include "game.h"
@@ -41,10 +42,10 @@ void CHECKPOINT_init()
 {
     checkpoint_count = 0;
 
-    const u16 count = sizeof(checkpoint_spawns) / sizeof(checkpoint_spawns[0]);
+    const u16 count = current_stage->checkpoint_count;
     for (u16 i = 0; i < count && checkpoint_count < MAX_CHECKPOINTS; i++)
     {
-        const CheckpointSpawn *spawn = (const CheckpointSpawn*)checkpoint_spawns[i];
+        const CheckpointSpawn *spawn = (const CheckpointSpawn*)current_stage->checkpoints[i];
         if (spawn->x < 0 || spawn->y < 0) continue;
         Checkpoint *checkpoint = &checkpoints[checkpoint_count++];
         // Objects mark the sprite's top-left corner, like slime objects.
@@ -107,7 +108,7 @@ void CHECKPOINT_clear_sprites()
 
 static bool spawn_position_is_safe(u16 spawn_x, u16 spawn_y)
 {
-    if ((u32)spawn_x + PLAYER_WIDTH > (u32)level_map.w * 128 ||
+    if ((u32)spawn_x + PLAYER_WIDTH > (u32)current_stage->width ||
         (u32)spawn_y + PLAYER_HEIGHT >= LEVEL_VIEW_HEIGHT) return FALSE;
     u16 x_left = spawn_x + 2;
     u16 x_center = spawn_x + (PLAYER_WIDTH / 2);
@@ -138,10 +139,10 @@ static bool spawn_position_is_safe(u16 spawn_x, u16 spawn_y)
     }
 
     // Slimes are recreated from objects after death.
-    const u16 count = sizeof(slime_spawns) / sizeof(slime_spawns[0]);
+    const u16 count = current_stage->slime_count;
     for (u16 i = 0; i < count; i++)
     {
-        const SlimeSpawn *enemy = (const SlimeSpawn*)slime_spawns[i];
+        const SlimeSpawn *enemy = (const SlimeSpawn*)current_stage->slimes[i];
         if (spawn_x + PLAYER_WIDTH > enemy->x + 2 && spawn_x < enemy->x + 14 &&
             spawn_y + PLAYER_HEIGHT > enemy->y + 4 && spawn_y < enemy->y + 16)
         {

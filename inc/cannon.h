@@ -37,6 +37,7 @@ typedef struct {
     bool active;
 } Bullet;
 
+void CANNON_clear();
 void CANNON_init();
 void CANNON_update();
 

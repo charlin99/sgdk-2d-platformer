@@ -15,6 +15,7 @@ typedef enum
     STATE_CREDITS,
     STATE_TITLE,
     STATE_PLAYING,
+    STATE_STAGE_TRANSITION,
     STATE_GAMEOVER
 } GameState;
 

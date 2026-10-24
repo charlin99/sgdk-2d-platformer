@@ -1,3 +1,4 @@
+#include "stage.h"
 #include "resources_def.h"
 #include "player.h"
 #include <resources.h>
@@ -45,13 +46,13 @@ void PLAYER_reset_at_spawn()
 
 bool PLAYER_set_initial_spawn()
 {
-    const u16 count = sizeof(player_spawns) / sizeof(player_spawns[0]);
+    const u16 count = current_stage->player_count;
     if (count != 1) return FALSE;
 
-    const PlayerSpawn *spawn = (const PlayerSpawn*)player_spawns[0];
+    const PlayerSpawn *spawn = (const PlayerSpawn*)current_stage->players[0];
     // Spawns marks the player's top-left corner. Starting in the air is allowed.
     if (spawn->x < 0 || spawn->y < 0 ||
-        (u32)spawn->x + PLAYER_WIDTH > (u32)level_map.w * 128 ||
+        (u32)spawn->x + PLAYER_WIDTH > (u32)current_stage->width ||
         (u32)spawn->y + PLAYER_HEIGHT > LEVEL_VIEW_HEIGHT) return FALSE;
 
     // Check every occupied tile, including hazards at the body's edges.
@@ -76,10 +77,11 @@ void PLAYER_clear_sprite()
 
 bool is_hard_solid_at(u16 x, u16 y)
 {
+    if (x >= current_stage->width) return TRUE;
     if (y >= LEVEL_VIEW_HEIGHT) return FALSE;
 
     u16 tile = MAP_getTile(bga, x / 8, y / 8) & TILE_INDEX_MASK;
-    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_ENEMY_SPAWN && tile != TILE_INDEX_CHECKPOINT_SPAWN && tile != TILE_INDEX_GRASS_1 && tile != TILE_INDEX_GRASS_2);
+    return (tile >= 1 && tile != TILE_INDEX_PLATFORM && tile != TILE_INDEX_SPIKE_FLOOR && tile != TILE_INDEX_SPIKE_WALL && tile != TILE_INDEX_SPIKE_CEILING && tile != TILE_INDEX_CHECKPOINT_SPAWN && tile != TILE_INDEX_GRASS_1 && tile != TILE_INDEX_GRASS_2);
 }
 
 bool is_platform_at(u16 x, u16 y)
